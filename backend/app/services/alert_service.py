@@ -12,7 +12,7 @@ class AlertService:
         self.db = db
 
     async def create_alert_rule(self, rule_data: AlertRuleCreate) -> AlertRule:
-        rule = AlertRule(**rule_data.dict())
+        rule = AlertRule(**rule_data.model_dump(mode="json"))
         self.db.add(rule)
         await self.db.commit()
         await self.db.refresh(rule)
@@ -35,7 +35,7 @@ class AlertService:
     async def update_alert_rule(
         self, rule_id: int, rule_data: AlertRuleUpdate
     ) -> Optional[AlertRule]:
-        update_data = rule_data.dict(exclude_unset=True)
+        update_data = rule_data.model_dump(exclude_unset=True, mode="json")
         if not update_data:
             return await self.get_alert_rule(rule_id)
 
@@ -59,7 +59,7 @@ class AlertService:
         return result.rowcount > 0
 
     async def create_alert(self, alert_data: AlertCreate) -> Alert:
-        alert = Alert(**alert_data.dict())
+        alert = Alert(**alert_data.model_dump(mode="json"))
         self.db.add(alert)
         await self.db.commit()
         await self.db.refresh(alert)

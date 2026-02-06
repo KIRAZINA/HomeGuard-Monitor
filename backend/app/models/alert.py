@@ -18,7 +18,7 @@ class AlertRule(Base):
     threshold_value = Column(Float)
     comparison_operator = Column(String(10))  # ComparisonOperator
     evaluation_window_minutes = Column(Integer, default=5)
-    notification_channels = Column(JSON)  # List of NotificationChannel
+    notification_channels = Column(JSON, default=list, nullable=False)  # List of NotificationChannel
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

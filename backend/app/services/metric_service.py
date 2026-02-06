@@ -16,7 +16,7 @@ class MetricService:
         for metric_data in metrics_data:
             if not metric_data.timestamp:
                 metric_data.timestamp = datetime.utcnow()
-            metrics.append(Metric(**metric_data.dict()))
+            metrics.append(Metric(**metric_data.model_dump()))
         
         self.db.add_all(metrics)
         await self.db.commit()

@@ -53,15 +53,16 @@ async def client(db_session: AsyncSession):
 async def test_user_token(db_session: AsyncSession):
     """Create a test user and return auth token."""
     from app.services.auth_service import AuthService
+    from app.schemas.user import UserCreate
     
     auth_service = AuthService(db_session)
     
     # Create test user
-    user_data = {
-        "email": "test@example.com",
-        "password": "testpassword123",
-        "full_name": "Test User"
-    }
+    user_data = UserCreate(
+        email="test@example.com",
+        password="testpassword123",
+        full_name="Test User"
+    )
     user = await auth_service.create_user(user_data)
     
     # Generate token
@@ -80,7 +81,8 @@ async def auth_headers(test_user_token: str):
 @pytest_asyncio.fixture
 async def test_device(db_session: AsyncSession):
     """Create a test device."""
-    from app.models.device import Device, DeviceType, DeviceStatus
+    from app.models.device import Device
+    from app.schemas.device import DeviceType, DeviceStatus
     
     device = Device(
         name="Test Server",

@@ -34,7 +34,7 @@ class DeviceService:
     async def update_device(
         self, device_id: int, device_data: DeviceUpdate
     ) -> Optional[Device]:
-        update_data = device_data.dict(exclude_unset=True)
+        update_data = device_data.model_dump(exclude_unset=True)
         if not update_data:
             return await self.get_device(device_id)
 

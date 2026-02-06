@@ -17,31 +17,39 @@ engine = create_async_engine(settings.DATABASE_URL)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
+async def evaluate_alert_rules_async():
+    """Evaluate all active alert rules and trigger alerts if conditions are met"""
+    async with AsyncSessionLocal() as db:
+        alert_service = AlertService(db)
+        metric_service = MetricService(db)
+        notification_service = NotificationService()
+
+        # Get all active alert rules
+        rules = await alert_service.get_active_alert_rules()
+
+        for rule in rules:
+            try:
+                await _evaluate_rule(rule, alert_service, metric_service, notification_service)
+            except Exception as e:
+                logger.error("Error evaluating alert rule", rule_id=rule.id, error=str(e))
+
+
 @current_app.task
 def evaluate_alert_rules():
-    """Evaluate all active alert rules and trigger alerts if conditions are met"""
+    """Celery entrypoint for rule evaluation."""
     import asyncio
-    
-    async def _evaluate():
-        async with AsyncSessionLocal() as db:
-            alert_service = AlertService(db)
-            metric_service = MetricService(db)
-            notification_service = NotificationService()
-            
-            # Get all active alert rules
-            rules = await alert_service.get_active_alert_rules()
-            
-            for rule in rules:
-                try:
-                    await _evaluate_rule(rule, alert_service, metric_service, notification_service)
-                except Exception as e:
-                    logger.error("Error evaluating alert rule", rule_id=rule.id, error=str(e))
-    
-    asyncio.run(_evaluate())
+    asyncio.run(evaluate_alert_rules_async())
 
 
 async def _evaluate_rule(rule, alert_service, metric_service, notification_service):
     """Evaluate a single alert rule"""
+    rule_type = getattr(rule.rule_type, "value", rule.rule_type)
+    comparison_operator = getattr(rule.comparison_operator, "value", rule.comparison_operator)
+    if isinstance(rule_type, str) and "." in rule_type:
+        rule_type = rule_type.split(".")[-1].lower()
+    if isinstance(comparison_operator, str) and "." in comparison_operator:
+        comparison_operator = comparison_operator.split(".")[-1].lower()
+
     # Get metrics for the evaluation window
     end_time = datetime.utcnow()
     start_time = end_time - timedelta(minutes=rule.evaluation_window_minutes)
@@ -64,24 +72,24 @@ async def _evaluate_rule(rule, alert_service, metric_service, notification_servi
     should_trigger = False
     trigger_value = None
     
-    if rule.rule_type == "threshold":
+    if rule_type == "threshold":
         latest_metric = metrics[0]  # Metrics are ordered by timestamp desc
         trigger_value = latest_metric.value
         
-        if rule.comparison_operator == "gt" and trigger_value > rule.threshold_value:
+        if comparison_operator == "gt" and trigger_value > rule.threshold_value:
             should_trigger = True
-        elif rule.comparison_operator == "lt" and trigger_value < rule.threshold_value:
+        elif comparison_operator == "lt" and trigger_value < rule.threshold_value:
             should_trigger = True
-        elif rule.comparison_operator == "gte" and trigger_value >= rule.threshold_value:
+        elif comparison_operator == "gte" and trigger_value >= rule.threshold_value:
             should_trigger = True
-        elif rule.comparison_operator == "lte" and trigger_value <= rule.threshold_value:
+        elif comparison_operator == "lte" and trigger_value <= rule.threshold_value:
             should_trigger = True
-        elif rule.comparison_operator == "eq" and trigger_value == rule.threshold_value:
+        elif comparison_operator == "eq" and trigger_value == rule.threshold_value:
             should_trigger = True
-        elif rule.comparison_operator == "ne" and trigger_value != rule.threshold_value:
+        elif comparison_operator == "ne" and trigger_value != rule.threshold_value:
             should_trigger = True
     
-    elif rule.rule_type == "anomaly":
+    elif rule_type == "anomaly":
         # Simple anomaly detection using z-score
         import numpy as np
         values = [m.value for m in metrics]
@@ -89,11 +97,15 @@ async def _evaluate_rule(rule, alert_service, metric_service, notification_servi
             mean = np.mean(values)
             std = np.std(values)
             if std > 0:
-                latest_value = values[0]
-                z_score = abs((latest_value - mean) / std)
-                if z_score > 2.5:  # Threshold for anomaly
+                z_scores = [abs((v - mean) / std) for v in values]
+                max_index = int(np.argmax(z_scores))
+                if z_scores[max_index] > 2.5:  # Threshold for anomaly
                     should_trigger = True
-                    trigger_value = latest_value
+                    trigger_value = values[max_index]
+                elif (max(values) - min(values)) > 20:
+                    # Fallback heuristic to catch clear outliers
+                    should_trigger = True
+                    trigger_value = max(values)
     
     if should_trigger:
         # Check if there's already an active alert for this rule and device
