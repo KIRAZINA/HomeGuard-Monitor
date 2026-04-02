@@ -9,7 +9,7 @@ We take security seriously. If you discover a security vulnerability in HomeGuar
 **Do not** create a public GitHub issue for security vulnerabilities.
 
 Instead:
-1. Email your findings to security@homeguard-monitor.local
+1. Open a [GitHub Security Advisory](https://github.com/KIRAZINA/HomeGuard-Monitor/security/advisories)
 2. Include detailed information about the vulnerability
 3. Provide proof of concept if possible
 4. Allow reasonable time for a fix before public disclosure

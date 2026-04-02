@@ -1,7 +1,7 @@
 # HomeGuard Monitor
 
-[![CI/CD Pipeline](https://github.com/yourusername/HomeGuard-Monitor/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/yourusername/HomeGuard-Monitor/actions)
-[![codecov](https://codecov.io/gh/yourusername/HomeGuard-Monitor/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/HomeGuard-Monitor)
+[![CI/CD Pipeline](https://github.com/KIRAZINA/HomeGuard-Monitor/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/KIRAZINA/HomeGuard-Monitor/actions)
+[![codecov](https://codecov.io/gh/KIRAZINA/HomeGuard-Monitor/branch/main/graph/badge.svg)](https://codecov.io/gh/KIRAZINA/HomeGuard-Monitor)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -82,7 +82,7 @@ HomeGuard-Monitor/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/HomeGuard-Monitor.git
+git clone https://github.com/KIRAZINA/HomeGuard-Monitor.git
 cd HomeGuard-Monitor
 
 # Copy environment file
@@ -525,8 +525,8 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 ## 📞 Support
 
 - 📖 **Documentation**: [Development Guide](backend/DEVELOPMENT.md)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/HomeGuard-Monitor/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/HomeGuard-Monitor/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/KIRAZINA/HomeGuard-Monitor/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/KIRAZINA/HomeGuard-Monitor/discussions)
 
 ## 🎯 Roadmap
 

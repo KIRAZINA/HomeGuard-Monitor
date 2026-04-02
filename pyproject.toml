@@ -68,10 +68,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/HomeGuard-Monitor"
-Documentation = "https://github.com/yourusername/HomeGuard-Monitor/wiki"
-Repository = "https://github.com/yourusername/HomeGuard-Monitor.git"
-Issues = "https://github.com/yourusername/HomeGuard-Monitor/issues"
+Homepage = "https://github.com/KIRAZINA/HomeGuard-Monitor"
+Documentation = "https://github.com/KIRAZINA/HomeGuard-Monitor/wiki"
+Repository = "https://github.com/KIRAZINA/HomeGuard-Monitor.git"
+Issues = "https://github.com/KIRAZINA/HomeGuard-Monitor/issues"
 
 # Tool configurations
 
