@@ -164,3 +164,13 @@ frontend/.cache/
 
 # Logs
 *.log
+
+# Test output files
+test_results.txt
+test_results_fixed.txt
+final_test_results.txt
+error_details.txt
+backend/test_results.txt
+backend/test_results_fixed.txt
+backend/final_test_results.txt
+backend/error_details.txt

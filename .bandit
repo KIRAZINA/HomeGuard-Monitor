@@ -1,0 +1,82 @@
+# Bandit security configuration
+# https://bandit.readthedocs.io/
+
+# Skip specific security checks
+skips: []
+
+# Exclude paths from scanning
+exclude_dirs:
+  - '/tests/'
+  - '/migrations/'
+  - '__pycache__'
+  - '.venv'
+  - 'venv'
+
+# Test names to run
+tests:
+  - B101  # assert_used
+  - B102  # exec_used
+  - B103  # set_bad_file_permissions
+  - B104  # hardcoded_bind_all_interfaces
+  - B105  # hardcoded_password_string
+  - B106  # hardcoded_password_funcarg
+  - B107  # hardcoded_password_default
+  - B108  # hardcoded_tmp_directory
+  - B110  # try_except_pass
+  - B112  # try_except_continue
+  - B201  # flask_debug_true
+  - B301  # pickle
+  - B302  # marshal
+  - B303  # md5
+  - B304  # cipher
+  - B305  # cipher_iv
+  - B306  # mktemp
+  - B307  # eval
+  - B308  # mark_safe
+  - B309  # httpsconnection
+  - B310  # urllib_urlopen
+  - B311  # random
+  - B312  # telnetlib
+  - B313  # xml_etree
+  - B314  # xml_sax
+  - B315  # xml_dom
+  - B316  # xml_expat
+  - B317  # xml_pulldom
+  - B318  # xml_sax_iterparse
+  - B319  # xml_sax_parseString
+  - B320  # xml_etree_parse
+  - B321  # ftplib
+  - B322  # unverified_context
+  - B323  # unverified_ssl_context
+  - B324  # probable_insecure_hash_usage
+  - B325  # tempnam
+  - B501  # request_verify_false
+  - B502  # ssl_with_bad_version
+  - B503  # ssl_with_bad_defaults
+  - B504  # ssl_with_no_version
+  - B505  # weak_cryptographic_key
+  - B506  # yaml_load
+  - B507  # ssh_no_host_key_verification
+  - B601  # paramiko_calls
+  - B602  # subprocess_popen_with_shell_equals_true
+  - B603  # subprocess_without_shell_equals_true
+  - B604  # any_other_function_with_shell_equals_true
+  - B605  # start_process_with_a_shell
+  - B606  # start_process_with_no_shell
+  - B607  # partial_paramiko_calls
+  - B608  # hardcoded_sql_expressions
+  - B609  # wildcard_injection
+  - B610  # django_sql_injection
+  - B611  # django_sql_injection_extra
+  - B701  # jinja2_autoescape_false
+  - B702  # mako_templates
+  - B703  # django_mark_safe
+  - B704  # flask_debug_true
+  - B705  # django_hasstatic_vulnerability
+
+# Confidence level (LOW, MEDIUM, HIGH)
+confidence: MEDIUM
+
+# Report format
+# json, txt, csv, custom
+report_type: json
