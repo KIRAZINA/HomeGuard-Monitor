@@ -2,95 +2,45 @@
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a security vulnerability in HomeGuard Monitor, please report it responsibly.
+Do not create a public GitHub issue for security vulnerabilities.
 
-### How to Report
+Instead, open a GitHub Security Advisory at https://github.com/KIRAZINA/HomeGuard-Monitor/security/advisories
 
-**Do not** create a public GitHub issue for security vulnerabilities.
-
-Instead:
-1. Open a [GitHub Security Advisory](https://github.com/KIRAZINA/HomeGuard-Monitor/security/advisories)
-2. Include detailed information about the vulnerability
-3. Provide proof of concept if possible
-4. Allow reasonable time for a fix before public disclosure
-
-### What to Include
-
+Include:
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact
-- Your contact information
+- Contact information
 
-### Response Timeline
+Response timeline:
+- Initial response within 24 hours
+- Status updates every 72 hours
+- Fix released as soon as feasible (typically 7-30 days)
 
-- **Initial Response:** Within 24 hours
-- **Status Updates:** Every 72 hours
-- **Fix Release:** As soon as technically feasible (typically 7-30 days)
-- **Public Disclosure:** After patch is released or 90 days have passed
+## Security Features
 
-## Security Best Practices
-
-### For Users
-
-1. Keep the application and dependencies updated
-2. Use strong, unique passwords
-3. Enable HTTPS in production
-4. Regularly backup your data
-5. Monitor system logs for unauthorized access
-6. Use the application in a secure network environment
-
-### For Developers
-
-- All contributions are scanned with Bandit security analyzer
-- Type hints are mandatory (prevents many classes of bugs)
-- Dependency updates are tracked and tested
-- Security headers are configured in production
-- SQL injection prevention via SQLAlchemy ORM
-- CORS properly configured
-- Rate limiting implemented
-
-## Known Security Considerations
-
-### Authentication
-- Bearer token authentication via JWT
-- Passwords hashed with bcrypt
-- No credentials in code or .env files
-
-### Database
-- Connection pooling with proper SSL support
-- No raw SQL queries (SQLAlchemy ORM)
-- Prepared statements for all queries
-
-### API
+- JWT bearer token authentication for users
+- X-Agent-API-Key header authentication for IoT agents
+- Rate limiting per endpoint with configurable limits
 - CORS restricted to allowed origins
-- Rate limiting on sensitive endpoints
-- HTTPS required in production
-- Input validation on all endpoints
+- Password hashing with bcrypt
+- SQL injection prevention via SQLAlchemy ORM
+- Input validation with Pydantic schemas
+- Multi-tenant isolation (user scoping on all queries)
+- HTTPS support (configure via reverse proxy)
 
-## Responsible Disclosure
+## Best Practices for Users
 
-We are committed to:
-- Taking all security reports seriously
-- Responding promptly
-- Providing fixes in a timely manner
-- Crediting researchers (if desired)
-- Not taking legal action against good-faith researchers
-
-## Updates and Patches
-
-Security patches are released as:
-- Critical: Immediately
-- High: Within 48 hours
-- Medium: Within 1 week
-- Low: With next release
+- Keep the application and dependencies updated
+- Use strong, unique passwords
+- Enable HTTPS in production
+- Regularly backup your data
+- Monitor system logs for unauthorized access
+- Restrict network access to the application
 
 ## Dependencies
 
-Regular security audits of dependencies are performed using:
-- `npm audit` (frontend)
-- `safety` (Python backend)
-- `bandit` (Python code analysis)
-
-Subscribe to security advisories for:
-- Python packages: pyup.io
-- npm packages: npm security advisories
+Regular security audits:
+- `npm audit` for frontend
+- `safety` for Python backend
+- `bandit` for Python code analysis
