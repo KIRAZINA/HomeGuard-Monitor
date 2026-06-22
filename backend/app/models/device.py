@@ -1,6 +1,8 @@
 """Device data model."""
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum, Index, UniqueConstraint
+import uuid
+from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.schemas.device import DeviceType, DeviceStatus
 
@@ -25,6 +27,24 @@ class Device(Base):
     location = Column(String(255), nullable=True)
     tags = Column(String(500), nullable=True)
     
+    # API key for agent authentication
+    api_key = Column(
+        String(64),
+        nullable=False,
+        unique=True,
+        index=True,
+        default=lambda: uuid.uuid4().hex,
+    )
+
+    # Ownership
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    owner = relationship("User", backref="devices")
+
     # Status tracking
     status = Column(
         SQLEnum(DeviceStatus),

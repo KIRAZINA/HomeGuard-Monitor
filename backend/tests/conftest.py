@@ -52,40 +52,46 @@ async def client(db_session: AsyncSession):
 
 
 @pytest_asyncio.fixture
-async def test_user_token(db_session: AsyncSession):
-    """Create a test user and return auth token."""
-    from app.services.auth_service import AuthService
-    from app.schemas.user import UserCreate
-    
-    auth_service = AuthService(db_session)
-    
-    # Create test user
-    user_data = UserCreate(
-        email="test@example.com",
-        password="testpassword123",
-        full_name="Test User"
-    )
-    user = await auth_service.create_user(user_data)
-    
-    # Generate token
-    token = auth_service.create_access_token(
-        data={"sub": user.email}
-    )
-    return token
-
-
-@pytest_asyncio.fixture
 async def auth_headers(test_user_token: str):
     """Return authorization headers for test requests."""
     return {"Authorization": f"Bearer {test_user_token}"}
 
 
 @pytest_asyncio.fixture
-async def test_device(db_session: AsyncSession):
-    """Create a test device."""
+async def test_user(db_session: AsyncSession):
+    """Create a test user and return it."""
+    from app.models.user import User
+    from app.services.auth_service import AuthService
+    from app.schemas.user import UserCreate
+
+    auth_service = AuthService(db_session)
+    user_data = UserCreate(
+        email="test@example.com",
+        password="testpassword123",
+        full_name="Test User"
+    )
+    user = await auth_service.create_user(user_data)
+    return user
+
+
+@pytest_asyncio.fixture
+async def test_user_token(test_user, db_session: AsyncSession):
+    """Create a test user and return auth token."""
+    from app.services.auth_service import AuthService
+
+    auth_service = AuthService(db_session)
+    token = auth_service.create_access_token(
+        data={"sub": test_user.email}
+    )
+    return token
+
+
+@pytest_asyncio.fixture
+async def test_device(db_session: AsyncSession, test_user):
+    """Create a test device owned by the test user."""
     from app.models.device import Device
     from app.schemas.device import DeviceType, DeviceStatus
-    
+
     device = Device(
         name="Test Server",
         description="Test server for monitoring",
@@ -93,9 +99,10 @@ async def test_device(db_session: AsyncSession):
         hostname="test-server",
         ip_address="192.168.1.100",
         location="Test Lab",
-        status=DeviceStatus.ONLINE
+        status=DeviceStatus.ONLINE,
+        user_id=test_user.id,
     )
-    
+
     db_session.add(device)
     await db_session.commit()
     await db_session.refresh(device)

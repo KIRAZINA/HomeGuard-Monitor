@@ -1,48 +1,37 @@
+"""Celery tasks for alert rule evaluation."""
 from celery import current_app
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import structlog
+import numpy as np
 
 from app.core.config import settings
-from app.services.alert_service import AlertService
-from app.services.metric_service import MetricService
-from app.services.notification_service import NotificationService
-from app.schemas.alert import AlertCreate
+from app.core.database import SyncSessionLocal
+from app.models.alert import AlertRule, Alert
+from app.models.metric import Metric
+from app.schemas.alert import AlertSeverity, AlertStatus, AlertRuleType, ComparisonOperator
 
 logger = structlog.get_logger()
-
-# Create async session for Celery tasks
-engine = create_async_engine(settings.DATABASE_URL)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-
-async def evaluate_alert_rules_async():
-    """Evaluate all active alert rules and trigger alerts if conditions are met"""
-    async with AsyncSessionLocal() as db:
-        alert_service = AlertService(db)
-        metric_service = MetricService(db)
-        notification_service = NotificationService()
-
-        # Get all active alert rules
-        rules = await alert_service.get_active_alert_rules()
-
-        for rule in rules:
-            try:
-                await _evaluate_rule(rule, alert_service, metric_service, notification_service)
-            except Exception as e:
-                logger.error("Error evaluating alert rule", rule_id=rule.id, error=str(e))
 
 
 @current_app.task
 def evaluate_alert_rules():
-    """Celery entrypoint for rule evaluation."""
-    import asyncio
-    asyncio.run(evaluate_alert_rules_async())
+    """Evaluate all active alert rules and trigger alerts if conditions are met."""
+    db: Session = SyncSessionLocal()
+    try:
+        rules = db.query(AlertRule).filter(AlertRule.enabled == True).all()
+
+        for rule in rules:
+            try:
+                _evaluate_rule(db, rule)
+            except Exception as e:
+                logger.error("Error evaluating alert rule", rule_id=rule.id, error=str(e))
+    finally:
+        db.close()
 
 
-async def _evaluate_rule(rule, alert_service, metric_service, notification_service):
-    """Evaluate a single alert rule"""
+def _evaluate_rule(db: Session, rule: AlertRule):
+    """Evaluate a single alert rule."""
     rule_type = getattr(rule.rule_type, "value", rule.rule_type)
     comparison_operator = getattr(rule.comparison_operator, "value", rule.comparison_operator)
     if isinstance(rule_type, str) and "." in rule_type:
@@ -53,29 +42,31 @@ async def _evaluate_rule(rule, alert_service, metric_service, notification_servi
     # Get metrics for the evaluation window
     end_time = datetime.utcnow()
     start_time = end_time - timedelta(minutes=rule.evaluation_window_minutes)
-    
-    from app.schemas.metric import MetricQuery
-    query = MetricQuery(
-        device_id=rule.device_id,
-        metric_type=rule.metric_type,
-        start_time=start_time,
-        end_time=end_time,
-        limit=100
+
+    metrics = (
+        db.query(Metric)
+        .filter(
+            Metric.device_id == rule.device_id,
+            Metric.metric_type == rule.metric_type,
+            Metric.timestamp >= start_time,
+            Metric.timestamp <= end_time,
+        )
+        .order_by(Metric.timestamp.desc())
+        .limit(100)
+        .all()
     )
-    
-    metrics = await metric_service.get_metrics(query)
-    
+
     if not metrics:
         return
-    
+
     # Check if alert condition is met
     should_trigger = False
     trigger_value = None
-    
+
     if rule_type == "threshold":
-        latest_metric = metrics[0]  # Metrics are ordered by timestamp desc
+        latest_metric = metrics[0]
         trigger_value = latest_metric.value
-        
+
         if comparison_operator == "gt" and trigger_value > rule.threshold_value:
             should_trigger = True
         elif comparison_operator == "lt" and trigger_value < rule.threshold_value:
@@ -88,53 +79,52 @@ async def _evaluate_rule(rule, alert_service, metric_service, notification_servi
             should_trigger = True
         elif comparison_operator == "ne" and trigger_value != rule.threshold_value:
             should_trigger = True
-    
+
     elif rule_type == "anomaly":
         # Simple anomaly detection using z-score
-        import numpy as np
         values = [m.value for m in metrics]
-        if len(values) > 5:  # Need sufficient data for anomaly detection
+        if len(values) > 5:
             mean = np.mean(values)
             std = np.std(values)
             if std > 0:
                 z_scores = [abs((v - mean) / std) for v in values]
                 max_index = int(np.argmax(z_scores))
-                if z_scores[max_index] > 2.5:  # Threshold for anomaly
+                if z_scores[max_index] > 2.5:
                     should_trigger = True
                     trigger_value = values[max_index]
                 elif (max(values) - min(values)) > 20:
-                    # Fallback heuristic to catch clear outliers
                     should_trigger = True
                     trigger_value = max(values)
-    
+
     if should_trigger:
         # Check if there's already an active alert for this rule and device
-        existing_alerts = await alert_service.get_alerts(
-            acknowledged=False, limit=1
+        existing_alert = (
+            db.query(Alert)
+            .filter(
+                Alert.rule_id == rule.id,
+                Alert.device_id == rule.device_id,
+                Alert.status == "active",
+            )
+            .first()
         )
-        existing_alert = next(
-            (a for a in existing_alerts 
-             if a.rule_id == rule.id and a.device_id == rule.device_id and a.status == "active"),
-            None
-        )
-        
+
         if not existing_alert:
-            # Create new alert
-            alert_data = AlertCreate(
+            alert = Alert(
                 rule_id=rule.id,
                 device_id=rule.device_id,
                 metric_type=rule.metric_type,
                 severity=rule.severity,
+                status="active",
                 message=f"Alert: {rule.name} - {rule.metric_type} is {trigger_value}",
-                trigger_value=trigger_value
+                trigger_value=trigger_value,
+                triggered_at=datetime.utcnow(),
             )
-            
-            alert = await alert_service.create_alert(alert_data)
-            
-            # Send notifications
-            await notification_service.send_alert_notifications(alert, rule)
-            
-            logger.info("Alert triggered", 
-                       rule_id=rule.id, 
-                       device_id=rule.device_id, 
-                       alert_id=alert.id)
+            db.add(alert)
+            db.commit()
+
+            logger.info(
+                "Alert triggered",
+                rule_id=rule.id,
+                device_id=rule.device_id,
+                alert_id=alert.id,
+            )

@@ -4,12 +4,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import structlog
+import asyncio
 
 from app.core.config import settings, EnvironmentEnum
 from app.core.database import engine, Base, init_db, close_db
 from app.core.logging import setup_logging
 from app.core.exceptions import HomeGuardException
 from app.core.errors import exception_handler, http_exception_handler, general_exception_handler
+from app.core.rate_limiting import EndpointRateLimiter, RateLimitMiddleware
+from app.core.ws import manager
 from app.api.v1.api import api_router
 
 # Setup logging
@@ -34,13 +37,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.exception("database_initialization_failed", exc=str(e))
         raise
+
+    ws_task = asyncio.create_task(manager.start_listener())
     
     yield
     
     # Shutdown
+    ws_task.cancel()
     logger.info("application_shutdown")
     try:
         await close_db()
+        await manager.close()
     except Exception as e:
         logger.exception("database_cleanup_failed", exc=str(e))
 
@@ -63,6 +70,10 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, general_exception_handler)
     
     # Add middleware stack (order matters - last added is first executed)
+    
+    # Rate limiting middleware
+    limiter = EndpointRateLimiter()
+    app.add_middleware(RateLimitMiddleware, limiter=limiter)
     
     # Trusted host middleware for production
     if settings.ENVIRONMENT == "production":

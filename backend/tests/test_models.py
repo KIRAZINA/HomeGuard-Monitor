@@ -5,13 +5,35 @@ from app.models.device import Device, DeviceType, DeviceStatus
 from app.models.metric import Metric
 from app.models.alert import AlertRule, Alert
 from app.models.user import User
+from app.services.auth_service import AuthService
+from app.schemas.user import UserCreate
+
+
+@pytest_asyncio.fixture
+async def local_user(db_session):
+    auth_service = AuthService(db_session)
+    user = await auth_service.create_user(
+        UserCreate(email="shared_test@example.com", password="testpass123")
+    )
+    return user
 
 
 class TestDeviceModel:
     """Test Device model."""
 
     @pytest_asyncio.fixture
-    async def local_device(self, db_session):
+    async def local_user(self, db_session):
+        """Create a test user for device ownership."""
+        from app.services.auth_service import AuthService
+        from app.schemas.user import UserCreate
+        auth_service = AuthService(db_session)
+        user = await auth_service.create_user(
+            UserCreate(email="device_test@example.com", password="testpass123")
+        )
+        return user
+
+    @pytest_asyncio.fixture
+    async def local_device(self, db_session, local_user):
         """Create a device for testing."""
         device = Device(
             name="Test Server",
@@ -21,7 +43,8 @@ class TestDeviceModel:
             ip_address="192.168.1.100",
             location="Test Lab",
             tags="test,server",
-            status=DeviceStatus.ONLINE
+            status=DeviceStatus.ONLINE,
+            user_id=local_user.id
         )
         db_session.add(device)
         await db_session.commit()
@@ -41,12 +64,13 @@ class TestDeviceModel:
         assert device.updated_at is not None
 
     @pytest.mark.asyncio
-    async def test_device_defaults(self, db_session):
+    async def test_device_defaults(self, db_session, local_user):
         """Test device model default values."""
         device = Device(
             name="Test Server",
             device_type=DeviceType.SERVER,
-            hostname="test-server"
+            hostname="test-server",
+            user_id=local_user.id
         )
         
         db_session.add(device)
@@ -60,12 +84,13 @@ class TestDeviceModel:
         assert device.tags is None
 
     @pytest.mark.asyncio
-    async def test_device_string_representation(self, db_session):
+    async def test_device_string_representation(self, db_session, local_user):
         """Test device string representation."""
         device = Device(
             name="Test Server",
             device_type=DeviceType.SERVER,
-            hostname="test-server"
+            hostname="test-server",
+            user_id=local_user.id
         )
         
         # Test that the device has a __repr__ method
@@ -78,12 +103,13 @@ class TestMetricModel:
     """Test Metric model."""
 
     @pytest_asyncio.fixture
-    async def local_device(self, db_session):
+    async def local_device(self, db_session, local_user):
         """Create a device for testing."""
         device = Device(
             name="Test Server",
             device_type=DeviceType.SERVER,
-            hostname="test-server"
+            hostname="test-server",
+            user_id=local_user.id
         )
         db_session.add(device)
         await db_session.commit()
@@ -152,12 +178,13 @@ class TestAlertRuleModel:
     """Test AlertRule model."""
 
     @pytest_asyncio.fixture
-    async def local_device(self, db_session):
+    async def local_device(self, db_session, local_user):
         """Create a device for testing."""
         device = Device(
             name="Test Server",
             device_type=DeviceType.SERVER,
-            hostname="test-server"
+            hostname="test-server",
+            user_id=local_user.id
         )
         db_session.add(device)
         await db_session.commit()
@@ -233,12 +260,13 @@ class TestAlertModel:
     """Test Alert model."""
 
     @pytest_asyncio.fixture
-    async def local_device_and_rule(self, db_session):
+    async def local_device_and_rule(self, db_session, local_user):
         """Create a device and rule for testing."""
         device = Device(
             name="Test Server",
             device_type=DeviceType.SERVER,
-            hostname="test-server"
+            hostname="test-server",
+            user_id=local_user.id
         )
         db_session.add(device)
         await db_session.commit()

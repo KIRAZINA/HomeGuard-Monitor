@@ -4,10 +4,12 @@ from sqlalchemy import select, update, delete, and_, func
 from typing import List, Optional
 from datetime import datetime, timedelta
 import structlog
+import json
 
 from app.models.alert import AlertRule, Alert
 from app.schemas.alert import AlertRuleCreate, AlertRuleUpdate, AlertCreate
 from app.core.exceptions import NotFoundError, DatabaseError
+from app.core.ws import manager
 
 logger = structlog.get_logger()
 
@@ -209,6 +211,19 @@ class AlertService:
                 rule_id=alert.rule_id,
                 severity=alert.severity,
             )
+            await manager.publish_alert({
+                "type": "alert_created",
+                "alert": {
+                    "id": alert.id,
+                    "rule_id": alert.rule_id,
+                    "device_id": alert.device_id,
+                    "metric_type": alert.metric_type,
+                    "severity": alert.severity,
+                    "message": alert.message,
+                    "trigger_value": alert.trigger_value,
+                    "triggered_at": alert.triggered_at.isoformat(),
+                },
+            })
             return alert
         except Exception as e:
             logger.exception("create_alert_failed", exc_info=e)
@@ -346,17 +361,15 @@ class AlertService:
     async def resolve_alert(
         self,
         alert_id: int,
-        resolved_by: str = "system",
     ) -> bool:
         """Resolve an alert.
-        
+
         Args:
             alert_id: Alert ID
-            resolved_by: User or system that resolved
-            
+
         Returns:
             True if updated, False if not found
-            
+
         Raises:
             DatabaseError: If database operation fails
         """
@@ -367,7 +380,6 @@ class AlertService:
                 .values(
                     status="resolved",
                     resolved_at=datetime.utcnow(),
-                    resolved_by=resolved_by,
                 )
             )
             await self.db.commit()
@@ -377,7 +389,6 @@ class AlertService:
                 logger.info(
                     "alert_resolved",
                     alert_id=alert_id,
-                    resolved_by=resolved_by,
                 )
             
             return updated
@@ -395,18 +406,6 @@ class AlertService:
             .values(
                 status="snoozed",
                 snoozed_until=snooze_until
-            )
-        )
-        await self.db.commit()
-        return result.rowcount > 0
-
-    async def resolve_alert(self, alert_id: int) -> bool:
-        result = await self.db.execute(
-            update(Alert)
-            .where(Alert.id == alert_id)
-            .values(
-                status="resolved",
-                resolved_at=datetime.utcnow()
             )
         )
         await self.db.commit()

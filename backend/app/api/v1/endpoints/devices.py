@@ -5,9 +5,11 @@ from typing import List
 import structlog
 
 from app.core.database import get_db
+from app.core.auth import get_current_active_user
 from app.schemas.device import DeviceCreate, DeviceResponse, DeviceUpdate
 from app.services.device_service import DeviceService
 from app.core.exceptions import NotFoundError, DuplicateError, DatabaseError
+from app.models.user import User
 
 logger = structlog.get_logger()
 
@@ -27,6 +29,7 @@ router = APIRouter(tags=["Devices"])
 async def create_device(
     device: DeviceCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> DeviceResponse:
     """Create a new device.
     
@@ -39,7 +42,7 @@ async def create_device(
     """
     try:
         device_service = DeviceService(db)
-        created_device = await device_service.create_device(device)
+        created_device = await device_service.create_device(device, user_id=current_user.id)
         logger.info("device_creation_request", device_name=device.name)
         return created_device
     except DuplicateError as e:
@@ -70,6 +73,7 @@ async def list_devices(
     status: str | None = Query(None, description="Filter by device status"),
     device_type: str | None = Query(None, description="Filter by device type"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> List[DeviceResponse]:
     """Get paginated devices list.
     
@@ -86,6 +90,7 @@ async def list_devices(
     try:
         device_service = DeviceService(db)
         devices = await device_service.get_devices(
+            user_id=current_user.id,
             skip=skip,
             limit=limit,
             status=status,
@@ -118,6 +123,7 @@ async def list_devices(
 async def get_device(
     device_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> DeviceResponse:
     """Get device by ID.
     
@@ -130,7 +136,7 @@ async def get_device(
     """
     try:
         device_service = DeviceService(db)
-        device = await device_service.get_device(device_id)
+        device = await device_service.get_device(device_id, user_id=current_user.id)
         if not device:
             logger.warning("device_not_found", device_id=device_id)
             raise NotFoundError("Device")
@@ -164,6 +170,7 @@ async def update_device(
     device_id: int,
     device_update: DeviceUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> DeviceResponse:
     """Update a device.
     
@@ -177,8 +184,8 @@ async def update_device(
     """
     try:
         device_service = DeviceService(db)
-        device = await device_service.update_device(device_id, device_update)
-        
+        device = await device_service.update_device(device_id, device_update, user_id=current_user.id)
+
         if not device:
             logger.warning("device_not_found_update", device_id=device_id)
             raise NotFoundError("Device")
@@ -210,6 +217,7 @@ async def update_device(
 async def delete_device(
     device_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> None:
     """Delete a device.
     
@@ -219,8 +227,8 @@ async def delete_device(
     """
     try:
         device_service = DeviceService(db)
-        success = await device_service.delete_device(device_id)
-        
+        success = await device_service.delete_device(device_id, user_id=current_user.id)
+
         if not success:
             logger.warning("device_not_found_delete", device_id=device_id)
             raise NotFoundError("Device")

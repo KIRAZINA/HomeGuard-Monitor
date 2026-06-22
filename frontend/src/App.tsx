@@ -1,13 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { authAPI } from './api/auth';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import AlertNotification from './components/AlertNotification';
+import { useWebSocket } from './hooks/useWebSocket';
 import { LogOut, Settings, Bell } from 'lucide-react';
+
+interface AlertData {
+  id: number;
+  rule_id: number;
+  device_id: number;
+  metric_type: string;
+  severity: string;
+  message: string;
+  trigger_value: number;
+  triggered_at: string;
+}
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<AlertData[]>([]);
+
+  const handleAlert = useCallback((payload: { type: string; alert: AlertData }) => {
+    if (payload.type === 'alert_created') {
+      setAlerts((prev) => [payload.alert, ...prev].slice(0, 5));
+    }
+  }, []);
+
+  useWebSocket(handleAlert);
+
+  const dismissAlert = (id: number) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -80,6 +106,11 @@ const App: React.FC = () => {
       </header>
 
       <main className="app-main">
+        <div className="alert-container">
+          {alerts.map((alert) => (
+            <AlertNotification key={alert.id} alert={alert} onDismiss={dismissAlert} />
+          ))}
+        </div>
         <Dashboard />
       </main>
     </div>

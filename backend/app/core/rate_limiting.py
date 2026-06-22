@@ -5,7 +5,9 @@ Rate limiting implementation for HomeGuard Monitor.
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-import time
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 
 class RateLimiter:
@@ -236,6 +238,46 @@ class EndpointRateLimiter:
             headers["X-RateLimit-Reset"] = reset_time.isoformat()
         
         return headers
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """FastAPI middleware for rate limiting requests."""
+
+    def __init__(self, app, limiter: EndpointRateLimiter):
+        super().__init__(app)
+        self.limiter = limiter
+
+    async def dispatch(self, request: Request, call_next):
+        client_id = request.client.host if request.client else "unknown"
+        path = request.url.path
+
+        if not self.limiter.is_allowed(path, client_id):
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": {
+                        "code": "RATE_LIMITED",
+                        "message": "Too many requests",
+                        "details": {
+                            "retry_after": "Please wait before making another request"
+                        },
+                    }
+                },
+            )
+
+        response = await call_next(request)
+
+        # Add rate limit headers
+        remaining = self.limiter.get_remaining(path, client_id)
+        reset_time = self.limiter.get_limiter(path).get_reset_time(client_id)
+        response.headers["X-RateLimit-Limit"] = str(
+            self.limiter.get_limiter(path).requests_per_minute
+        )
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        if reset_time:
+            response.headers["X-RateLimit-Reset"] = reset_time.isoformat()
+
+        return response
 
 
 # Global rate limiter instance

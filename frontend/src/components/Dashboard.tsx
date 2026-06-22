@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { devicesAPI, metricsAPI, Device, Metric } from '../api';
 import { Activity, Cpu, HardDrive, Network } from 'lucide-react';
@@ -8,11 +9,9 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
-  const [devices, setDevices] = useState<Device[]>([]);
+  const queryClient = useQueryClient();
   const [selectedDevice, setSelectedDevice] = useState<number | undefined>(deviceId);
-  const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState(24); // hours
+  const [timeRange, setTimeRange] = useState(24);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [deviceForm, setDeviceForm] = useState({
     name: '',
@@ -29,66 +28,31 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
     unit: 'percent'
   });
 
-  useEffect(() => {
-    loadDevices();
-  }, []);
+  const { data: devices = [], isLoading: devicesLoading } = useQuery({
+    queryKey: ['devices'],
+    queryFn: () => devicesAPI.getDevices(),
+    refetchInterval: 30_000,
+  });
 
-  useEffect(() => {
-    if (selectedDevice) {
-      loadMetrics(selectedDevice, timeRange);
-    }
-  }, [selectedDevice, timeRange]);
+  const endTime = new Date().toISOString();
+  const startTime = new Date(Date.now() - timeRange * 60 * 60 * 1000).toISOString();
 
-  const loadDevices = async () => {
-    try {
-      const devicesData = await devicesAPI.getDevices();
-      setDevices(devicesData);
-      if (!selectedDevice && devicesData.length > 0) {
-        setSelectedDevice(devicesData[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load devices:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: metrics = [] } = useQuery({
+    queryKey: ['metrics', selectedDevice, timeRange],
+    queryFn: () => metricsAPI.getMetrics({
+      device_id: selectedDevice!,
+      start_time: startTime,
+      end_time: endTime,
+      limit: 1000,
+    }),
+    enabled: !!selectedDevice,
+    refetchInterval: 15_000,
+  });
 
-  const loadMetrics = async (deviceId: number, hours: number) => {
-    try {
-      const endTime = new Date().toISOString();
-      const startTime = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-      
-      const metricsData = await metricsAPI.getMetrics({
-        device_id: deviceId,
-        start_time: startTime,
-        end_time: endTime,
-        limit: 1000
-      });
-      
-      setMetrics(metricsData);
-    } catch (error) {
-      console.error('Failed to load metrics:', error);
-    }
-  };
-
-  const handleCreateDevice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionMessage(null);
-    if (!deviceForm.name || !deviceForm.hostname) {
-      setActionMessage('Please provide at least name and hostname.');
-      return;
-    }
-
-    try {
-      const created = await devicesAPI.createDevice({
-        name: deviceForm.name,
-        hostname: deviceForm.hostname,
-        device_type: deviceForm.device_type,
-        description: deviceForm.description || undefined,
-        ip_address: deviceForm.ip_address || undefined,
-        location: deviceForm.location || undefined,
-        tags: deviceForm.tags || undefined,
-      });
+  const createDeviceMutation = useMutation({
+    mutationFn: (data: Parameters<typeof devicesAPI.createDevice>[0]) =>
+      devicesAPI.createDevice(data),
+    onSuccess: (created) => {
       setActionMessage(`Device "${created.name}" created.`);
       setDeviceForm({
         name: '',
@@ -99,15 +63,46 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
         tags: '',
         description: ''
       });
-      await loadDevices();
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
       setSelectedDevice(created.id);
-    } catch (error) {
-      console.error('Failed to create device:', error);
+    },
+    onError: () => {
       setActionMessage('Failed to create device.');
+    },
+  });
+
+  const ingestMetricMutation = useMutation({
+    mutationFn: (data: Parameters<typeof metricsAPI.ingestMetrics>[0]) =>
+      metricsAPI.ingestMetrics(data),
+    onSuccess: () => {
+      setActionMessage('Metric ingested.');
+      setMetricForm({ metric_type: metricForm.metric_type, value: '', unit: metricForm.unit });
+      queryClient.invalidateQueries({ queryKey: ['metrics', selectedDevice, timeRange] });
+    },
+    onError: () => {
+      setActionMessage('Failed to ingest metric.');
+    },
+  });
+
+  const handleCreateDevice = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionMessage(null);
+    if (!deviceForm.name || !deviceForm.hostname) {
+      setActionMessage('Please provide at least name and hostname.');
+      return;
     }
+    createDeviceMutation.mutate({
+      name: deviceForm.name,
+      hostname: deviceForm.hostname,
+      device_type: deviceForm.device_type,
+      description: deviceForm.description || undefined,
+      ip_address: deviceForm.ip_address || undefined,
+      location: deviceForm.location || undefined,
+      tags: deviceForm.tags || undefined,
+    });
   };
 
-  const handleIngestMetric = async (e: React.FormEvent) => {
+  const handleIngestMetric = (e: React.FormEvent) => {
     e.preventDefault();
     setActionMessage(null);
     if (!selectedDevice) {
@@ -119,24 +114,13 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
       setActionMessage('Metric value must be a number.');
       return;
     }
-
-    try {
-      await metricsAPI.ingestMetrics([
-        {
-          device_id: selectedDevice,
-          metric_type: metricForm.metric_type,
-          value,
-          unit: metricForm.unit || undefined,
-          timestamp: new Date().toISOString()
-        }
-      ]);
-      setActionMessage('Metric ingested.');
-      setMetricForm({ metric_type: metricForm.metric_type, value: '', unit: metricForm.unit });
-      await loadMetrics(selectedDevice, timeRange);
-    } catch (error) {
-      console.error('Failed to ingest metric:', error);
-      setActionMessage('Failed to ingest metric.');
-    }
+    ingestMetricMutation.mutate([{
+      device_id: selectedDevice,
+      metric_type: metricForm.metric_type,
+      value,
+      unit: metricForm.unit || undefined,
+      timestamp: new Date().toISOString(),
+    }]);
   };
 
   const getMetricIcon = (metricType: string) => {
@@ -147,16 +131,14 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
   };
 
   const formatChartData = (metricType: string) => {
-    const filteredMetrics = metrics
+    return metrics
       .filter(m => m.metric_type === metricType)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
       .map(m => ({
         time: new Date(m.timestamp).toLocaleTimeString(),
         value: m.value,
-        timestamp: m.timestamp
+        timestamp: m.timestamp,
       }));
-
-    return filteredMetrics;
   };
 
   const getDeviceStatus = (device: Device) => {
@@ -169,7 +151,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
     return { status: 'offline', color: 'text-red-600' };
   };
 
-  if (loading) {
+  if (devicesLoading) {
     return (
       <div className="app-center" style={{ minHeight: 260 }}>
         <div className="spinner" />
@@ -244,7 +226,9 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
               onChange={(e) => setDeviceForm({ ...deviceForm, description: e.target.value })}
               placeholder="Primary storage server"
             />
-            <button className="btn btn-primary" type="submit">Create Device</button>
+            <button className="btn btn-primary" type="submit" disabled={createDeviceMutation.isPending}>
+              {createDeviceMutation.isPending ? 'Creating...' : 'Create Device'}
+            </button>
           </form>
 
           <form className="form-card" onSubmit={handleIngestMetric}>
@@ -281,7 +265,9 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
               onChange={(e) => setMetricForm({ ...metricForm, unit: e.target.value })}
               placeholder="percent"
             />
-            <button className="btn btn-secondary" type="submit">Send Metric</button>
+            <button className="btn btn-secondary" type="submit" disabled={ingestMetricMutation.isPending}>
+              {ingestMetricMutation.isPending ? 'Sending...' : 'Send Metric'}
+            </button>
           </form>
         </div>
       </div>
@@ -367,21 +353,21 @@ const Dashboard: React.FC<DashboardProps> = ({ deviceId }) => {
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={formatChartData(metricType)}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="time" 
+                    <XAxis
+                      dataKey="time"
                       tick={{ fontSize: 12 }}
                       interval="preserveStartEnd"
                     />
                     <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip 
+                    <Tooltip
                       labelFormatter={(value) => `Time: ${value}`}
                       formatter={(value: any) => [value, 'Value']}
                     />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#3b82f6" 
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3b82f6"
                       strokeWidth={2}
                       dot={false}
                     />

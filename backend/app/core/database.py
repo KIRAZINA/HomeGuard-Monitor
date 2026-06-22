@@ -1,11 +1,12 @@
 """Database configuration and session management."""
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
 )
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool, QueuePool
 import structlog
 
@@ -18,35 +19,32 @@ logger = structlog.get_logger()
 Base = declarative_base()
 
 
-def create_engine() -> AsyncEngine:
+def create_async_db_engine() -> AsyncEngine:
     """Create async database engine with optimized settings."""
     db_url = str(settings.DATABASE_URL).lower()
     is_sqlite = "sqlite" in db_url
     
-    # Base engine arguments
-    engine_args = {
+    base_args = {
         "echo": settings.DATABASE_ECHO,
         "future": True,
         "echo_pool": settings.DEBUG,
     }
     
-    # Add pool configuration only for non-SQLite databases
     if not is_sqlite:
-        engine_args.update({
+        base_args.update({
             "pool_class": QueuePool,
             "pool_size": settings.DATABASE_POOL_SIZE,
             "max_overflow": settings.DATABASE_MAX_OVERFLOW,
-            "pool_pre_ping": True,  # Test connections before using them
-            "pool_recycle": 3600,   # Recycle connections after 1 hour
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,
         })
-    # SQLite doesn't need explicit pool configuration
     
-    engine = create_async_engine(str(settings.DATABASE_URL), **engine_args)
+    engine = create_async_engine(str(settings.DATABASE_URL), **base_args)
     return engine
 
 
 # Create engine instance
-engine: AsyncEngine = create_engine()
+engine: AsyncEngine = create_async_db_engine()
 
 
 # Create session factory
@@ -57,6 +55,33 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
     autocommit=False,
 )
+
+
+# Synchronous engine for Celery workers
+sync_db_url = str(settings.DATABASE_URL).replace("+asyncpg", "+psycopg2")
+is_sync_sqlite = "sqlite" in sync_db_url.lower()
+sync_engine_kwargs = {"pool_pre_ping": True}
+if not is_sync_sqlite:
+    sync_engine_kwargs.update(pool_size=5, max_overflow=5)
+sync_engine = create_engine(sync_db_url, **sync_engine_kwargs)
+SyncSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=sync_engine,
+)
+
+
+def get_sync_db():
+    """Get synchronous database session for Celery tasks.
+
+    Yields:
+        SQLAlchemy Session
+    """
+    db = SyncSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 async def get_db() -> AsyncSession:

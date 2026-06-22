@@ -101,11 +101,12 @@ class DeviceUpdate(BaseModel):
 class DeviceResponse(DeviceBase):
     """Device response model."""
     id: int = Field(..., description="Device ID")
+    api_key: Optional[str] = Field(None, description="Agent API key (only returned on creation)")
     status: DeviceStatus = Field(..., description="Device status")
     last_seen: Optional[datetime] = Field(None, description="Last seen timestamp")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    
+
     class Config:
         """Pydantic config."""
         from_attributes = True
@@ -114,9 +115,3 @@ class DeviceResponse(DeviceBase):
             DeviceType: lambda v: v.value,
             DeviceStatus: lambda v: v.value,
         }
-
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True

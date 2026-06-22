@@ -25,7 +25,7 @@ class TestDevices:
             headers=auth_headers
         )
         
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["name"] == device_data["name"]
         assert data["hostname"] == device_data["hostname"]
@@ -131,9 +131,8 @@ class TestDevices:
             headers=auth_headers
         )
         
-        assert response.status_code == 200
-        data = response.json()
-        assert "deleted successfully" in data["message"]
+        assert response.status_code == 204
+        assert response.content == b""
 
         # Verify device is deleted
         get_response = await client.get(
@@ -165,7 +164,7 @@ class TestDevices:
                 headers=auth_headers
             )
             
-            assert response.status_code == 200
+            assert response.status_code == 201
 
     async def test_device_invalid_type(self, client: AsyncClient, auth_headers):
         """Test invalid device type fails."""

@@ -20,10 +20,11 @@ import sys
 
 
 class MonitoringAgent:
-    def __init__(self, server_url: str, device_id: int, interval: int = 30):
+    def __init__(self, server_url: str, device_id: int, interval: int = 30, api_key: str = None):
         self.server_url = server_url.rstrip('/')
         self.device_id = device_id
         self.interval = interval
+        self.api_key = api_key
         self.hostname = socket.gethostname()
         self.ip_address = self._get_local_ip()
         
@@ -172,7 +173,9 @@ class MonitoringAgent:
         try:
             url = f"{self.server_url}/api/v1/metrics/ingest"
             headers = {"Content-Type": "application/json"}
-            
+            if self.api_key:
+                headers["X-Agent-API-Key"] = self.api_key
+
             response = requests.post(url, json=metrics, headers=headers, timeout=10)
             
             if response.status_code == 200:
@@ -202,9 +205,10 @@ class MonitoringAgent:
             
             response = requests.post(url, json=device_data, headers=headers, timeout=10)
             
-            if response.status_code == 200:
+            if response.status_code == 201:
                 device_info = response.json()
                 self.device_id = device_info["id"]
+                self.api_key = device_info.get("api_key", self.api_key)
                 self.logger.info(f"Device registered successfully with ID: {self.device_id}")
                 return True
             else:
@@ -255,6 +259,8 @@ def main():
                        help="Device type")
     parser.add_argument("--interval", type=int, default=30, 
                        help="Metrics collection interval in seconds")
+    parser.add_argument("--api-key", 
+                       help="Agent API key for authentication (returned from device registration)")
     parser.add_argument("--register", action="store_true", 
                        help="Register device before starting monitoring")
     
@@ -269,7 +275,7 @@ def main():
         sys.exit(1)
     
     # Create monitoring agent
-    agent = MonitoringAgent(args.server, args.device_id or 0, args.interval)
+    agent = MonitoringAgent(args.server, args.device_id or 0, args.interval, api_key=args.api_key)
     
     # Register device if requested
     if args.register:

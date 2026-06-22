@@ -1,25 +1,48 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from app.models.metric import Metric
+from app.models.device import Device
+from app.schemas.device import DeviceStatus
 from app.schemas.metric import MetricCreate, MetricQuery, MetricSummary
+from app.core.exceptions import NotFoundError, DatabaseError
 
 
 class MetricService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def ingest_metrics(self, metrics_data: List[MetricCreate]) -> None:
+    async def ingest_metrics(self, metrics_data: List[MetricCreate]) -> dict:
+        if not metrics_data:
+            return {"ingested": 0}
+
+        device_id = metrics_data[0].device_id
+
+        # Validate device exists and auto-update status
+        result = await self.db.execute(
+            select(Device).where(Device.id == device_id)
+        )
+        device = result.scalar_one_or_none()
+        if not device:
+            raise NotFoundError(f"Device {device_id}")
+
+        # Auto-update device status to online
+        device.status = DeviceStatus.ONLINE
+        device.last_seen = datetime.now(timezone.utc)
+
+        # Bulk insert metrics
         metrics = []
         for metric_data in metrics_data:
             if not metric_data.timestamp:
-                metric_data.timestamp = datetime.utcnow()
+                metric_data.timestamp = datetime.now(timezone.utc)
             metrics.append(Metric(**metric_data.model_dump()))
-        
+
         self.db.add_all(metrics)
         await self.db.commit()
+
+        return {"ingested": len(metrics)}
 
     async def get_metrics(self, query: MetricQuery) -> List[Metric]:
         conditions = []
