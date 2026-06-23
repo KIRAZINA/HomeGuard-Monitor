@@ -1,15 +1,14 @@
 """Device service for database operations."""
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func
-from sqlalchemy.orm import selectinload
-from typing import List, Optional
 from datetime import datetime
-import structlog
 
+import structlog
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.exceptions import DatabaseError, DuplicateError, NotFoundError
 from app.models.device import Device
-from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceResponse
-from app.core.exceptions import NotFoundError, DuplicateError, DatabaseError
+from app.schemas.device import DeviceCreate, DeviceUpdate
 
 logger = structlog.get_logger()
 
@@ -78,9 +77,9 @@ class DeviceService:
         except Exception as e:
             logger.exception("create_device_failed", exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to create device", {"error": str(e)})
+            raise DatabaseError("Failed to create device", {"error": str(e)}) from None
 
-    async def get_device(self, device_id: int, user_id: int) -> Optional[Device]:
+    async def get_device(self, device_id: int, user_id: int) -> Device | None:
         """Get device by ID scoped to user.
 
         Args:
@@ -103,16 +102,16 @@ class DeviceService:
             return result.scalar_one_or_none()
         except Exception as e:
             logger.exception("get_device_failed", device_id=device_id, exc_info=e)
-            raise DatabaseError(f"Failed to get device {device_id}")
+            raise DatabaseError(f"Failed to get device {device_id}") from None
 
     async def get_devices(
         self,
         user_id: int,
         skip: int = 0,
         limit: int = 100,
-        status: Optional[str] = None,
-        device_type: Optional[str] = None,
-    ) -> List[Device]:
+        status: str | None = None,
+        device_type: str | None = None,
+    ) -> list[Device]:
         """Get paginated devices list scoped to user.
 
         Args:
@@ -142,7 +141,7 @@ class DeviceService:
             return result.scalars().all()
         except Exception as e:
             logger.exception("get_devices_failed", skip=skip, limit=limit, exc_info=e)
-            raise DatabaseError("Failed to retrieve devices")
+            raise DatabaseError("Failed to retrieve devices") from None
 
     async def get_devices_count(self, user_id: int) -> int:
         """Get count of user's devices.
@@ -163,14 +162,14 @@ class DeviceService:
             return result.scalar() or 0
         except Exception as e:
             logger.exception("get_devices_count_failed", exc_info=e)
-            raise DatabaseError("Failed to count devices")
+            raise DatabaseError("Failed to count devices") from None
 
     async def update_device(
         self,
         device_id: int,
         device_data: DeviceUpdate,
         user_id: int,
-    ) -> Optional[Device]:
+    ) -> Device | None:
         """Update a device scoped to user.
 
         Args:
@@ -226,7 +225,7 @@ class DeviceService:
         except Exception as e:
             logger.exception("update_device_failed", device_id=device_id, exc_info=e)
             await self.db.rollback()
-            raise DatabaseError(f"Failed to update device {device_id}")
+            raise DatabaseError(f"Failed to update device {device_id}") from None
 
     async def delete_device(self, device_id: int, user_id: int) -> bool:
         """Delete a device scoped to user.
@@ -258,7 +257,7 @@ class DeviceService:
         except Exception as e:
             logger.exception("delete_device_failed", device_id=device_id, exc_info=e)
             await self.db.rollback()
-            raise DatabaseError(f"Failed to delete device {device_id}")
+            raise DatabaseError(f"Failed to delete device {device_id}") from None
 
     async def update_device_status(
         self,
@@ -305,9 +304,9 @@ class DeviceService:
                 exc_info=e,
             )
             await self.db.rollback()
-            raise DatabaseError(f"Failed to update device status {device_id}")
+            raise DatabaseError(f"Failed to update device status {device_id}") from None
 
-    async def _get_by_hostname(self, hostname: str) -> Optional[Device]:
+    async def _get_by_hostname(self, hostname: str) -> Device | None:
         """Get device by hostname (internal method).
 
         Args:

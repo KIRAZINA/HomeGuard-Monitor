@@ -1,8 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, JSON
-from sqlalchemy.sql import func
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.core.database import Base
-from app.schemas.alert import AlertSeverity, AlertStatus, AlertRuleType, ComparisonOperator
 
 
 class AlertRule(Base):

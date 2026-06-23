@@ -1,13 +1,13 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from datetime import datetime, timedelta
-from typing import Optional
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.user import UserCreate, TokenData
+from app.schemas.user import TokenData, UserCreate
 
 
 class AuthService:
@@ -21,7 +21,7 @@ class AuthService:
     def get_password_hash(self, password: str) -> str:
         return self.pwd_context.hash(password)
 
-    async def get_user_by_email(self, email: str) -> Optional[User]:
+    async def get_user_by_email(self, email: str) -> User | None:
         result = await self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
@@ -35,7 +35,7 @@ class AuthService:
         await self.db.refresh(user)
         return user
 
-    async def authenticate_user(self, email: str, password: str) -> Optional[User]:
+    async def authenticate_user(self, email: str, password: str) -> User | None:
         user = await self.get_user_by_email(email)
         if not user:
             return None
@@ -43,7 +43,7 @@ class AuthService:
             return None
         return user
 
-    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(self, data: dict, expires_delta: timedelta | None = None) -> str:
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
@@ -53,7 +53,7 @@ class AuthService:
         encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         return encoded_jwt
 
-    async def get_current_user(self, token: str) -> Optional[User]:
+    async def get_current_user(self, token: str) -> User | None:
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
             email: str = payload.get("sub")

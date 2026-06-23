@@ -1,11 +1,11 @@
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
 from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserBase(BaseModel):
     email: EmailStr
-    full_name: Optional[str] = Field(None, max_length=255)
+    full_name: str | None = Field(None, max_length=255)
 
 
 class UserCreate(UserBase):
@@ -13,9 +13,9 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(None, max_length=255)
-    password: Optional[str] = Field(None, min_length=8, max_length=100)
+    email: EmailStr | None = None
+    full_name: str | None = Field(None, max_length=255)
+    password: str | None = Field(None, min_length=8, max_length=100)
 
 
 class UserResponse(UserBase):
@@ -34,4 +34,4 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: Optional[str] = None
+    email: str | None = None

@@ -1,15 +1,14 @@
 """Database configuration and session management."""
 
+import structlog
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import (
-    create_async_engine,
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
+    create_async_engine,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
-
-import structlog
 
 from app.core.config import settings
 

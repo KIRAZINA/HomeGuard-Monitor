@@ -1,10 +1,8 @@
 """Error handling utilities."""
 
-from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
-from typing import Callable, Union
 import structlog
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from app.core.exceptions import HomeGuardException
 

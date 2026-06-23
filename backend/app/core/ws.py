@@ -1,9 +1,10 @@
 """WebSocket connection manager with Redis pub/sub for real-time alert broadcasting."""
 
 import json
+
 import structlog
-from typing import Set
 from fastapi import WebSocket
+
 from app.core.config import settings
 
 try:
@@ -18,7 +19,7 @@ class ConnectionManager:
     """Manages WebSocket connections and broadcasts alerts via Redis pub/sub."""
 
     def __init__(self):
-        self._connections: Set[WebSocket] = set()
+        self._connections: set[WebSocket] = set()
         self._redis = None
         self._pubsub = None
 

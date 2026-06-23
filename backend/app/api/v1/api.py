@@ -1,7 +1,8 @@
 """API v1 router configuration."""
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import devices, metrics, alerts, auth
+
+from app.api.v1.endpoints import alerts, auth, devices, metrics
 
 # Create main API router
 api_router = APIRouter()

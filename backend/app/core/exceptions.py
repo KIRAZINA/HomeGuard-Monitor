@@ -1,6 +1,6 @@
 """Custom exception definitions for the application."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class HomeGuardException(Exception):
@@ -10,8 +10,8 @@ class HomeGuardException(Exception):
         self,
         message: str,
         status_code: int = 500,
-        error_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Initialize exception.
 
@@ -34,7 +34,7 @@ class ValidationError(HomeGuardException):
     def __init__(
         self,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             message=message,
@@ -93,7 +93,7 @@ class AuthorizationError(HomeGuardException):
 class DatabaseError(HomeGuardException):
     """Raised when database operation fails."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(
             message=message,
             status_code=500,

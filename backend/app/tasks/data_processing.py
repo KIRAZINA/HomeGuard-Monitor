@@ -1,8 +1,9 @@
 """Celery tasks for data processing and maintenance."""
 
-from celery import current_app
 from datetime import datetime, timedelta
+
 import structlog
+from celery import current_app
 
 from app.core.config import settings
 from app.core.database import SyncSessionLocal

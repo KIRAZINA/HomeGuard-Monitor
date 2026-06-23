@@ -4,7 +4,7 @@ Rate limiting implementation for HomeGuard Monitor.
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -25,7 +25,7 @@ class RateLimiter:
         """
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
-        self._windows: Dict[str, List[datetime]] = defaultdict(list)
+        self._windows: dict[str, list[datetime]] = defaultdict(list)
 
     def is_allowed(self, client_id: str) -> bool:
         """
@@ -77,7 +77,7 @@ class RateLimiter:
 
         return max(0, self.requests_per_minute - len(self._windows[client_id]))
 
-    def get_reset_time(self, client_id: str) -> Optional[datetime]:
+    def get_reset_time(self, client_id: str) -> datetime | None:
         """
         Get time when rate limit resets for client.
 
@@ -121,7 +121,7 @@ class RateLimiter:
         """
         self._windows[client_id] = [t for t in self._windows[client_id] if t > before]
 
-    def _get_recent_requests(self, client_id: str, since: datetime) -> List[datetime]:
+    def _get_recent_requests(self, client_id: str, since: datetime) -> list[datetime]:
         """
         Get recent requests within time window.
 
@@ -141,7 +141,7 @@ class EndpointRateLimiter:
     """
 
     def __init__(self):
-        self._limiters: Dict[str, RateLimiter] = {}
+        self._limiters: dict[str, RateLimiter] = {}
         self._default_limiter = RateLimiter(requests_per_minute=60, burst_size=10)
 
     def get_limiter(self, endpoint: str) -> RateLimiter:
@@ -195,7 +195,7 @@ class EndpointRateLimiter:
         limiter = self.get_limiter(endpoint)
         return limiter.get_remaining_requests(client_id)
 
-    def add_headers(self, response, endpoint: str, client_id: str) -> dict:
+    def add_headers(self, _response, endpoint: str, client_id: str) -> dict:
         """
         Add rate limit headers to response.
 

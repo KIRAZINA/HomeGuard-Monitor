@@ -1,16 +1,15 @@
 """Celery tasks for alert rule evaluation."""
 
+from datetime import datetime, timedelta
+
+import numpy as np
+import structlog
 from celery import current_app
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-import structlog
-import numpy as np
 
-from app.core.config import settings
 from app.core.database import SyncSessionLocal
-from app.models.alert import AlertRule, Alert
+from app.models.alert import Alert, AlertRule
 from app.models.metric import Metric
-from app.schemas.alert import AlertSeverity, AlertStatus, AlertRuleType, ComparisonOperator
 
 logger = structlog.get_logger()
 
@@ -20,7 +19,7 @@ def evaluate_alert_rules():
     """Evaluate all active alert rules and trigger alerts if conditions are met."""
     db: Session = SyncSessionLocal()
     try:
-        rules = db.query(AlertRule).filter(AlertRule.enabled == True).all()
+        rules = db.query(AlertRule).filter(AlertRule.enabled).all()
 
         for rule in rules:
             try:
@@ -68,17 +67,24 @@ def _evaluate_rule(db: Session, rule: AlertRule):
         latest_metric = metrics[0]
         trigger_value = latest_metric.value
 
-        if comparison_operator == "gt" and trigger_value > rule.threshold_value:
-            should_trigger = True
-        elif comparison_operator == "lt" and trigger_value < rule.threshold_value:
-            should_trigger = True
-        elif comparison_operator == "gte" and trigger_value >= rule.threshold_value:
-            should_trigger = True
-        elif comparison_operator == "lte" and trigger_value <= rule.threshold_value:
-            should_trigger = True
-        elif comparison_operator == "eq" and trigger_value == rule.threshold_value:
-            should_trigger = True
-        elif comparison_operator == "ne" and trigger_value != rule.threshold_value:
+        if (
+            comparison_operator == "gt"
+            and trigger_value > rule.threshold_value
+            or comparison_operator == "lt"
+            and trigger_value < rule.threshold_value
+            or (
+                comparison_operator == "gte"
+                and trigger_value >= rule.threshold_value
+                or comparison_operator == "lte"
+                and trigger_value <= rule.threshold_value
+            )
+            or (
+                comparison_operator == "eq"
+                and trigger_value == rule.threshold_value
+                or comparison_operator == "ne"
+                and trigger_value != rule.threshold_value
+            )
+        ):
             should_trigger = True
 
     elif rule_type == "anomaly":

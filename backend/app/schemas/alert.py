@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+
+from pydantic import BaseModel, Field
 
 
 class AlertSeverity(str, Enum):
@@ -40,15 +40,15 @@ class NotificationChannel(str, Enum):
 
 class AlertRuleBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=500)
-    device_id: Optional[int] = None
+    description: str | None = Field(None, max_length=500)
+    device_id: int | None = None
     metric_type: str = Field(..., min_length=1, max_length=100)
     rule_type: AlertRuleType
     severity: AlertSeverity
-    threshold_value: Optional[float] = None
-    comparison_operator: Optional[ComparisonOperator] = None
+    threshold_value: float | None = None
+    comparison_operator: ComparisonOperator | None = None
     evaluation_window_minutes: int = Field(default=5, ge=1, le=1440)
-    notification_channels: List[NotificationChannel] = []
+    notification_channels: list[NotificationChannel] = []
     enabled: bool = True
 
 
@@ -57,17 +57,17 @@ class AlertRuleCreate(AlertRuleBase):
 
 
 class AlertRuleUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=500)
-    device_id: Optional[int] = None
-    metric_type: Optional[str] = Field(None, min_length=1, max_length=100)
-    rule_type: Optional[AlertRuleType] = None
-    severity: Optional[AlertSeverity] = None
-    threshold_value: Optional[float] = None
-    comparison_operator: Optional[ComparisonOperator] = None
-    evaluation_window_minutes: Optional[int] = Field(None, ge=1, le=1440)
-    notification_channels: Optional[List[NotificationChannel]] = None
-    enabled: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=500)
+    device_id: int | None = None
+    metric_type: str | None = Field(None, min_length=1, max_length=100)
+    rule_type: AlertRuleType | None = None
+    severity: AlertSeverity | None = None
+    threshold_value: float | None = None
+    comparison_operator: ComparisonOperator | None = None
+    evaluation_window_minutes: int | None = Field(None, ge=1, le=1440)
+    notification_channels: list[NotificationChannel] | None = None
+    enabled: bool | None = None
 
 
 class AlertRuleResponse(AlertRuleBase):
@@ -96,10 +96,10 @@ class AlertResponse(AlertBase):
     id: int
     status: AlertStatus
     triggered_at: datetime
-    acknowledged_at: Optional[datetime] = None
-    acknowledged_by: Optional[str] = None
-    resolved_at: Optional[datetime] = None
-    snoozed_until: Optional[datetime] = None
+    acknowledged_at: datetime | None = None
+    acknowledged_by: str | None = None
+    resolved_at: datetime | None = None
+    snoozed_until: datetime | None = None
 
     class Config:
         from_attributes = True

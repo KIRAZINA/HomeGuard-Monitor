@@ -1,21 +1,14 @@
 """Device data model."""
 
 import uuid
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    Text,
-    Enum as SQLEnum,
-    ForeignKey,
-    Index,
-    UniqueConstraint,
-)
-from sqlalchemy.sql import func
+
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.core.database import Base
-from app.schemas.device import DeviceType, DeviceStatus
+from app.schemas.device import DeviceStatus, DeviceType
 
 
 class Device(Base):

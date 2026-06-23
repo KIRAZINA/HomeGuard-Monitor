@@ -1,9 +1,10 @@
 """Device schemas for request/response validation."""
 
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+from typing import ClassVar
+
+from pydantic import BaseModel, Field, validator
 
 
 class DeviceType(str, Enum):
@@ -29,14 +30,12 @@ class DeviceBase(BaseModel):
     """Base device data."""
 
     name: str = Field(..., min_length=1, max_length=255, description="Device name")
-    description: Optional[str] = Field(None, max_length=500, description="Device description")
+    description: str | None = Field(None, max_length=500, description="Device description")
     device_type: DeviceType = Field(..., description="Device type")
     hostname: str = Field(..., min_length=1, max_length=255, description="Device hostname")
-    ip_address: Optional[str] = Field(None, max_length=45, description="Device IP address")
-    location: Optional[str] = Field(None, max_length=255, description="Physical device location")
-    tags: Optional[List[str]] = Field(
-        default_factory=list, description="Device tags for organization"
-    )
+    ip_address: str | None = Field(None, max_length=45, description="Device IP address")
+    location: str | None = Field(None, max_length=255, description="Physical device location")
+    tags: list[str] | None = Field(default_factory=list, description="Device tags for organization")
 
     @validator("hostname")
     def validate_hostname(cls, v: str) -> str:
@@ -46,7 +45,7 @@ class DeviceBase(BaseModel):
         return v
 
     @validator("ip_address")
-    def validate_ip(cls, v: Optional[str]) -> Optional[str]:
+    def validate_ip(cls, v: str | None) -> str | None:
         """Validate IP address format."""
         if v is None:
             return v
@@ -59,7 +58,7 @@ class DeviceBase(BaseModel):
                 if not 0 <= num <= 255:
                     raise ValueError("Invalid IPv4 address")
             except ValueError:
-                raise ValueError("Invalid IPv4 address")
+                raise ValueError("Invalid IPv4 address") from None
         return v
 
 
@@ -72,17 +71,17 @@ class DeviceCreate(DeviceBase):
 class DeviceUpdate(BaseModel):
     """Device update request."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=500)
-    device_type: Optional[DeviceType] = None
-    hostname: Optional[str] = Field(None, min_length=1, max_length=255)
-    ip_address: Optional[str] = Field(None, max_length=45)
-    location: Optional[str] = Field(None, max_length=255)
-    tags: Optional[List[str]] = None
-    status: Optional[DeviceStatus] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=500)
+    device_type: DeviceType | None = None
+    hostname: str | None = Field(None, min_length=1, max_length=255)
+    ip_address: str | None = Field(None, max_length=45)
+    location: str | None = Field(None, max_length=255)
+    tags: list[str] | None = None
+    status: DeviceStatus | None = None
 
     @validator("hostname")
-    def validate_hostname(cls, v: Optional[str]) -> Optional[str]:
+    def validate_hostname(cls, v: str | None) -> str | None:
         """Validate hostname format."""
         if v is None:
             return v
@@ -95,9 +94,9 @@ class DeviceResponse(DeviceBase):
     """Device response model."""
 
     id: int = Field(..., description="Device ID")
-    api_key: Optional[str] = Field(None, description="Agent API key (only returned on creation)")
+    api_key: str | None = Field(None, description="Agent API key (only returned on creation)")
     status: DeviceStatus = Field(..., description="Device status")
-    last_seen: Optional[datetime] = Field(None, description="Last seen timestamp")
+    last_seen: datetime | None = Field(None, description="Last seen timestamp")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
@@ -105,7 +104,7 @@ class DeviceResponse(DeviceBase):
         """Pydantic config."""
 
         from_attributes = True
-        json_encoders = {
+        json_encoders: ClassVar[dict] = {
             datetime: lambda v: v.isoformat() if v else None,
             DeviceType: lambda v: v.value,
             DeviceStatus: lambda v: v.value,

@@ -1,16 +1,15 @@
 """Alert service for managing alert rules and alerts."""
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, and_, func
-from typing import List, Optional
 from datetime import datetime, timedelta
-import structlog
-import json
 
-from app.models.alert import AlertRule, Alert
-from app.schemas.alert import AlertRuleCreate, AlertRuleUpdate, AlertCreate
-from app.core.exceptions import NotFoundError, DatabaseError
+import structlog
+from sqlalchemy import and_, delete, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.exceptions import DatabaseError, NotFoundError
 from app.core.ws import manager
+from app.models.alert import Alert, AlertRule
+from app.schemas.alert import AlertCreate, AlertRuleCreate, AlertRuleUpdate
 
 logger = structlog.get_logger()
 
@@ -53,9 +52,9 @@ class AlertService:
         except Exception as e:
             logger.exception("create_alert_rule_failed", exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to create alert rule")
+            raise DatabaseError("Failed to create alert rule") from None
 
-    async def get_alert_rule(self, rule_id: int) -> Optional[AlertRule]:
+    async def get_alert_rule(self, rule_id: int) -> AlertRule | None:
         """Get alert rule by ID.
 
         Args:
@@ -72,15 +71,15 @@ class AlertService:
             return result.scalar_one_or_none()
         except Exception as e:
             logger.exception("get_alert_rule_failed", rule_id=rule_id, exc_info=e)
-            raise DatabaseError("Failed to get alert rule")
+            raise DatabaseError("Failed to get alert rule") from None
 
     async def get_alert_rules(
         self,
         skip: int = 0,
         limit: int = 100,
-        device_id: Optional[int] = None,
+        device_id: int | None = None,
         enabled_only: bool = False,
-    ) -> List[AlertRule]:
+    ) -> list[AlertRule]:
         """Get paginated alert rules with optional filters.
 
         Args:
@@ -109,13 +108,13 @@ class AlertService:
             return result.scalars().all()
         except Exception as e:
             logger.exception("get_alert_rules_failed", exc_info=e)
-            raise DatabaseError("Failed to retrieve alert rules")
+            raise DatabaseError("Failed to retrieve alert rules") from None
 
     async def update_alert_rule(
         self,
         rule_id: int,
         rule_data: AlertRuleUpdate,
-    ) -> Optional[AlertRule]:
+    ) -> AlertRule | None:
         """Update an alert rule.
 
         Args:
@@ -156,7 +155,7 @@ class AlertService:
         except Exception as e:
             logger.exception("update_alert_rule_failed", rule_id=rule_id, exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to update alert rule")
+            raise DatabaseError("Failed to update alert rule") from None
 
     async def delete_alert_rule(self, rule_id: int) -> bool:
         """Delete an alert rule.
@@ -182,7 +181,7 @@ class AlertService:
         except Exception as e:
             logger.exception("delete_alert_rule_failed", rule_id=rule_id, exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to delete alert rule")
+            raise DatabaseError("Failed to delete alert rule") from None
 
     async def create_alert(self, alert_data: AlertCreate) -> Alert:
         """Create a new alert instance.
@@ -227,16 +226,16 @@ class AlertService:
         except Exception as e:
             logger.exception("create_alert_failed", exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to create alert")
+            raise DatabaseError("Failed to create alert") from None
 
     async def get_alerts(
         self,
         skip: int = 0,
         limit: int = 100,
-        status: Optional[str] = None,
-        severity: Optional[str] = None,
+        status: str | None = None,
+        severity: str | None = None,
         hours: int = 24,
-    ) -> List[Alert]:
+    ) -> list[Alert]:
         """Get paginated alerts with optional filters.
 
         Args:
@@ -276,11 +275,11 @@ class AlertService:
             return result.scalars().all()
         except Exception as e:
             logger.exception("get_alerts_failed", exc_info=e)
-            raise DatabaseError("Failed to retrieve alerts")
+            raise DatabaseError("Failed to retrieve alerts") from None
 
     async def get_alerts_count(
         self,
-        status: Optional[str] = None,
+        status: str | None = None,
         hours: int = 24,
     ) -> int:
         """Get count of alerts.
@@ -310,7 +309,7 @@ class AlertService:
             return result.scalar() or 0
         except Exception as e:
             logger.exception("get_alerts_count_failed", exc_info=e)
-            raise DatabaseError("Failed to count alerts")
+            raise DatabaseError("Failed to count alerts") from None
 
     async def acknowledge_alert(
         self,
@@ -353,7 +352,7 @@ class AlertService:
         except Exception as e:
             logger.exception("acknowledge_alert_failed", alert_id=alert_id, exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to acknowledge alert")
+            raise DatabaseError("Failed to acknowledge alert") from None
 
     async def resolve_alert(
         self,
@@ -392,7 +391,7 @@ class AlertService:
         except Exception as e:
             logger.exception("resolve_alert_failed", alert_id=alert_id, exc_info=e)
             await self.db.rollback()
-            raise DatabaseError("Failed to resolve alert")
+            raise DatabaseError("Failed to resolve alert") from None
 
     async def snooze_alert(self, alert_id: int, minutes: int = 30) -> bool:
         snooze_until = datetime.utcnow() + timedelta(minutes=minutes)
@@ -404,6 +403,6 @@ class AlertService:
         await self.db.commit()
         return result.rowcount > 0
 
-    async def get_active_alert_rules(self) -> List[AlertRule]:
-        result = await self.db.execute(select(AlertRule).where(AlertRule.enabled == True))
+    async def get_active_alert_rules(self) -> list[AlertRule]:
+        result = await self.db.execute(select(AlertRule).where(AlertRule.enabled))
         return result.scalars().all()

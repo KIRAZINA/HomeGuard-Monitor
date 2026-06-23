@@ -1,16 +1,15 @@
 """Device API endpoints."""
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
-import structlog
 
-from app.core.database import get_db
 from app.core.auth import get_current_active_user
+from app.core.database import get_db
+from app.core.exceptions import DatabaseError, DuplicateError, NotFoundError
+from app.models.user import User
 from app.schemas.device import DeviceCreate, DeviceResponse, DeviceUpdate
 from app.services.device_service import DeviceService
-from app.core.exceptions import NotFoundError, DuplicateError, DatabaseError
-from app.models.user import User
 
 logger = structlog.get_logger()
 
@@ -62,7 +61,7 @@ async def create_device(
 
 @router.get(
     "/",
-    response_model=List[DeviceResponse],
+    response_model=list[DeviceResponse],
     summary="List devices",
     responses={
         200: {"description": "List of devices"},
@@ -75,7 +74,7 @@ async def list_devices(
     device_type: str | None = Query(None, description="Filter by device type"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[DeviceResponse]:
+) -> list[DeviceResponse]:
     """Get paginated devices list.
 
     Args:

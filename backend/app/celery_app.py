@@ -1,9 +1,9 @@
 """Celery application configuration."""
 
-from celery import Celery
-from celery.schedules import schedule
-from app.core.config import settings
 import structlog
+from celery import Celery
+
+from app.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -73,4 +73,4 @@ def debug_task(self):
         return {"status": "ok"}
     except Exception as exc:
         # Exponential backoff: 2^x * 60 seconds
-        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))  # noqa: B904

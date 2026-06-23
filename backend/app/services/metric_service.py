@@ -1,20 +1,20 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
-from typing import List, Optional
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
-from app.models.metric import Metric
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.exceptions import NotFoundError
 from app.models.device import Device
+from app.models.metric import Metric
 from app.schemas.device import DeviceStatus
 from app.schemas.metric import MetricCreate, MetricQuery, MetricSummary
-from app.core.exceptions import NotFoundError, DatabaseError
 
 
 class MetricService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def ingest_metrics(self, metrics_data: List[MetricCreate]) -> dict:
+    async def ingest_metrics(self, metrics_data: list[MetricCreate]) -> dict:
         if not metrics_data:
             return {"ingested": 0}
 
@@ -42,7 +42,7 @@ class MetricService:
 
         return {"ingested": len(metrics)}
 
-    async def get_metrics(self, query: MetricQuery) -> List[Metric]:
+    async def get_metrics(self, query: MetricQuery) -> list[Metric]:
         conditions = []
 
         if query.device_id:
@@ -64,7 +64,7 @@ class MetricService:
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get_latest_metrics(self, device_id: int) -> List[Metric]:
+    async def get_latest_metrics(self, device_id: int) -> list[Metric]:
         subquery = (
             select(Metric.metric_type, func.max(Metric.timestamp).label("latest_timestamp"))
             .where(Metric.device_id == device_id)
@@ -87,7 +87,7 @@ class MetricService:
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get_metrics_summary(self, device_id: int, hours: int = 24) -> List[MetricSummary]:
+    async def get_metrics_summary(self, device_id: int, hours: int = 24) -> list[MetricSummary]:
         start_time = datetime.utcnow() - timedelta(hours=hours)
 
         stmt = (
@@ -124,7 +124,7 @@ class MetricService:
 
         return summaries
 
-    async def get_latest_metric_value(self, device_id: int, metric_type: str) -> Optional[Metric]:
+    async def get_latest_metric_value(self, device_id: int, metric_type: str) -> Metric | None:
         stmt = (
             select(Metric)
             .where(and_(Metric.device_id == device_id, Metric.metric_type == metric_type))

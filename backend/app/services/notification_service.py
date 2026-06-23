@@ -1,9 +1,9 @@
-import structlog
-from typing import List
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 import aiohttp
 import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import structlog
 
 from app.core.config import settings
 from app.models.alert import Alert, AlertRule
@@ -86,7 +86,8 @@ class NotificationService:
         # For now, we'll just log the message
         message = f"""
         🚨 *HomeGuard Alert*
-        
+
+
         *Alert:* {rule.name}
         *Severity:* {alert.severity}
         *Device:* {alert.device_id}
@@ -118,16 +119,18 @@ class NotificationService:
 
         payload = {"embeds": [embed]}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(self.discord_webhook_url, json=payload) as response:
-                if response.status == 204:
-                    logger.info("Discord notification sent", alert_id=alert.id)
-                else:
-                    logger.error(
-                        "Failed to send Discord notification",
-                        status=response.status,
-                        alert_id=alert.id,
-                    )
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(self.discord_webhook_url, json=payload) as response,
+        ):
+            if response.status == 204:
+                logger.info("Discord notification sent", alert_id=alert.id)
+            else:
+                logger.error(
+                    "Failed to send Discord notification",
+                    status=response.status,
+                    alert_id=alert.id,
+                )
 
     async def _send_sms_notification(self, alert: Alert, rule: AlertRule):
         """Send SMS notification via Twilio"""

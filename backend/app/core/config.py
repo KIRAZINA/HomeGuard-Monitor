@@ -1,9 +1,10 @@
 """Application configuration with environment validation."""
 
-from pydantic import Field, HttpUrl, RedisDsn, validator, AnyUrl
-from pydantic_settings import BaseSettings
-from typing import List, Optional
 from enum import Enum
+from typing import ClassVar
+
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 
 class EnvironmentEnum(str, Enum):
@@ -50,7 +51,7 @@ class Settings(BaseSettings):
     )
 
     # CORS
-    ALLOWED_HOSTS: List[str] = Field(
+    ALLOWED_HOSTS: list[str] = Field(
         default=["http://localhost:3000", "http://127.0.0.1:3000"],
         description="Allowed origins for CORS",
     )
@@ -65,15 +66,15 @@ class Settings(BaseSettings):
     CELERY_TASK_TIMEOUT: int = Field(default=300, ge=10, description="Task timeout in seconds")
 
     # Notification settings
-    TELEGRAM_BOT_TOKEN: Optional[str] = Field(default=None, description="Telegram bot token")
-    DISCORD_WEBHOOK_URL: Optional[str] = Field(default=None, description="Discord webhook URL")
-    TWILIO_ACCOUNT_SID: Optional[str] = Field(default=None, description="Twilio account SID")
-    TWILIO_AUTH_TOKEN: Optional[str] = Field(default=None, description="Twilio auth token")
-    SMTP_HOST: Optional[str] = Field(default=None, description="SMTP server host")
+    TELEGRAM_BOT_TOKEN: str | None = Field(default=None, description="Telegram bot token")
+    DISCORD_WEBHOOK_URL: str | None = Field(default=None, description="Discord webhook URL")
+    TWILIO_ACCOUNT_SID: str | None = Field(default=None, description="Twilio account SID")
+    TWILIO_AUTH_TOKEN: str | None = Field(default=None, description="Twilio auth token")
+    SMTP_HOST: str | None = Field(default=None, description="SMTP server host")
     SMTP_PORT: int = Field(default=587, ge=1, le=65535, description="SMTP server port")
-    SMTP_USERNAME: Optional[str] = Field(default=None, description="SMTP username")
-    SMTP_PASSWORD: Optional[str] = Field(default=None, description="SMTP password")
-    SMTP_FROM_EMAIL: Optional[str] = Field(default=None, description="Sender email address")
+    SMTP_USERNAME: str | None = Field(default=None, description="SMTP username")
+    SMTP_PASSWORD: str | None = Field(default=None, description="SMTP password")
+    SMTP_FROM_EMAIL: str | None = Field(default=None, description="Sender email address")
 
     # Monitoring
     METRICS_RETENTION_DAYS: int = Field(
@@ -97,7 +98,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
-        json_schema_extra = {
+        json_schema_extra: ClassVar[dict] = {
             "example": {
                 "PROJECT_NAME": "HomeGuard Monitor",
                 "ENVIRONMENT": "development",

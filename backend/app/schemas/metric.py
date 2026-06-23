@@ -1,18 +1,18 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Union
 from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 class MetricBase(BaseModel):
     device_id: int
     metric_type: str = Field(..., min_length=1, max_length=100)
-    value: Union[int, float]
-    unit: Optional[str] = Field(None, max_length=20)
-    tags: Optional[dict] = None
+    value: int | float
+    unit: str | None = Field(None, max_length=20)
+    tags: dict | None = None
 
 
 class MetricCreate(MetricBase):
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
 
 
 class MetricResponse(MetricBase):
@@ -24,8 +24,8 @@ class MetricResponse(MetricBase):
 
 
 class MetricQuery(BaseModel):
-    device_id: Optional[int] = None
-    metric_type: Optional[str] = None
+    device_id: int | None = None
+    metric_type: str | None = None
     start_time: datetime
     end_time: datetime
     limit: int = Field(default=1000, le=10000)

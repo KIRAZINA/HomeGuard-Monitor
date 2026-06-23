@@ -1,20 +1,21 @@
 """FastAPI application factory."""
 
+import asyncio
 from contextlib import asynccontextmanager
+
+import structlog
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-import structlog
-import asyncio
 
-from app.core.config import settings, EnvironmentEnum
-from app.core.database import engine, Base, init_db, close_db
-from app.core.logging import setup_logging
+from app.api.v1.api import api_router
+from app.core.config import settings
+from app.core.database import close_db, init_db
+from app.core.errors import exception_handler, general_exception_handler, http_exception_handler
 from app.core.exceptions import HomeGuardException
-from app.core.errors import exception_handler, http_exception_handler, general_exception_handler
+from app.core.logging import setup_logging
 from app.core.rate_limiting import EndpointRateLimiter, RateLimitMiddleware
 from app.core.ws import manager
-from app.api.v1.api import api_router
 
 # Setup logging
 setup_logging()
@@ -22,7 +23,7 @@ logger = structlog.get_logger()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Application lifespan context manager."""
     # Startup
     logger.info(
