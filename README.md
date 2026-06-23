@@ -133,9 +133,12 @@ Backend:
 ```
 cd backend
 pip install -r requirements.txt -r requirements-test.txt
-alembic upgrade head
-uvicorn app.main:app --reload
+python -m alembic upgrade head
+python -m uvicorn app.main:app --reload
 ```
+
+> Note: If `alembic` or `uvicorn` are not found, use `python -m` (as shown above) or add the Python Scripts directory to your PATH:
+> `$env:Path = "...\Python313\Scripts;$env:Path"` (Windows) or ensure `~/.local/bin` is on PATH (Linux/macOS).
 
 Frontend:
 ```
