@@ -26,7 +26,7 @@ class NotificationService:
         """Send notifications through all configured channels"""
         if not rule.notification_channels:
             return
-        
+
         for channel in rule.notification_channels:
             try:
                 if channel == "email":
@@ -38,22 +38,21 @@ class NotificationService:
                 elif channel == "sms":
                     await self._send_sms_notification(alert, rule)
             except Exception as e:
-                logger.error("Failed to send notification", 
-                           channel=channel, 
-                           alert_id=alert.id, 
-                           error=str(e))
+                logger.error(
+                    "Failed to send notification", channel=channel, alert_id=alert.id, error=str(e)
+                )
 
     async def _send_email_notification(self, alert: Alert, rule: AlertRule):
         """Send email notification"""
         if not all([self.smtp_host, self.smtp_username, self.smtp_password]):
             logger.warning("Email configuration missing")
             return
-        
+
         message = MIMEMultipart()
         message["From"] = self.smtp_username
         message["To"] = self.smtp_username  # Send to self for now
         message["Subject"] = f"HomeGuard Alert: {rule.name}"
-        
+
         body = f"""
         Alert: {rule.name}
         Severity: {alert.severity}
@@ -63,9 +62,9 @@ class NotificationService:
         Message: {alert.message}
         Time: {alert.triggered_at}
         """
-        
+
         message.attach(MIMEText(body, "plain"))
-        
+
         await aiosmtplib.send(
             message,
             hostname=self.smtp_host,
@@ -74,7 +73,7 @@ class NotificationService:
             username=self.smtp_username,
             password=self.smtp_password,
         )
-        
+
         logger.info("Email notification sent", alert_id=alert.id)
 
     async def _send_telegram_notification(self, alert: Alert, rule: AlertRule):
@@ -82,7 +81,7 @@ class NotificationService:
         if not self.telegram_bot_token:
             logger.warning("Telegram bot token not configured")
             return
-        
+
         # This would need to be configured with chat IDs
         # For now, we'll just log the message
         message = f"""
@@ -95,17 +94,15 @@ class NotificationService:
         *Value:* {alert.trigger_value}
         *Message:* {alert.message}
         """
-        
-        logger.info("Telegram notification would be sent", 
-                   alert_id=alert.id, 
-                   message=message)
+
+        logger.info("Telegram notification would be sent", alert_id=alert.id, message=message)
 
     async def _send_discord_notification(self, alert: Alert, rule: AlertRule):
         """Send Discord notification"""
         if not self.discord_webhook_url:
             logger.warning("Discord webhook URL not configured")
             return
-        
+
         embed = {
             "title": f"HomeGuard Alert: {rule.name}",
             "description": alert.message,
@@ -116,38 +113,38 @@ class NotificationService:
                 {"name": "Metric", "value": alert.metric_type, "inline": True},
                 {"name": "Value", "value": str(alert.trigger_value), "inline": True},
             ],
-            "timestamp": alert.triggered_at.isoformat()
+            "timestamp": alert.triggered_at.isoformat(),
         }
-        
+
         payload = {"embeds": [embed]}
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(self.discord_webhook_url, json=payload) as response:
                 if response.status == 204:
                     logger.info("Discord notification sent", alert_id=alert.id)
                 else:
-                    logger.error("Failed to send Discord notification", 
-                               status=response.status, 
-                               alert_id=alert.id)
+                    logger.error(
+                        "Failed to send Discord notification",
+                        status=response.status,
+                        alert_id=alert.id,
+                    )
 
     async def _send_sms_notification(self, alert: Alert, rule: AlertRule):
         """Send SMS notification via Twilio"""
         if not all([self.twilio_account_sid, self.twilio_auth_token]):
             logger.warning("Twilio configuration missing")
             return
-        
+
         # This would need phone numbers to be configured
         message = f"HomeGuard Alert: {rule.name} - {alert.message}"
-        
-        logger.info("SMS notification would be sent", 
-                   alert_id=alert.id, 
-                   message=message)
+
+        logger.info("SMS notification would be sent", alert_id=alert.id, message=message)
 
     def _get_discord_color(self, severity: str) -> int:
         """Get Discord embed color based on severity"""
         colors = {
-            "info": 0x3498db,      # Blue
-            "warning": 0xf39c12,   # Orange
-            "critical": 0xe74c3c,  # Red
+            "info": 0x3498DB,  # Blue
+            "warning": 0xF39C12,  # Orange
+            "critical": 0xE74C3C,  # Red
         }
-        return colors.get(severity, 0x95a5a6)  # Default gray
+        return colors.get(severity, 0x95A5A6)  # Default gray

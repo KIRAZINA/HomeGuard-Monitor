@@ -16,15 +16,11 @@ class TestDevices:
             "hostname": "test-server.local",
             "ip_address": "192.168.1.100",
             "location": "Home Lab",
-            "tags": "test,server"
+            "tags": "test,server",
         }
-        
-        response = await client.post(
-            "/api/v1/devices/", 
-            json=device_data, 
-            headers=auth_headers
-        )
-        
+
+        response = await client.post("/api/v1/devices/", json=device_data, headers=auth_headers)
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == device_data["name"]
@@ -39,11 +35,11 @@ class TestDevices:
         device_data = {
             "name": "Test Server",
             "device_type": "server",
-            "hostname": "test-server.local"
+            "hostname": "test-server.local",
         }
-        
+
         response = await client.post("/api/v1/devices/", json=device_data)
-        
+
         assert response.status_code == 401
 
     async def test_create_device_invalid_data(self, client: AsyncClient, auth_headers):
@@ -51,21 +47,17 @@ class TestDevices:
         device_data = {
             "name": "",  # Empty name should fail
             "device_type": "server",
-            "hostname": "test-server.local"
+            "hostname": "test-server.local",
         }
-        
-        response = await client.post(
-            "/api/v1/devices/", 
-            json=device_data, 
-            headers=auth_headers
-        )
-        
+
+        response = await client.post("/api/v1/devices/", json=device_data, headers=auth_headers)
+
         assert response.status_code == 422
 
     async def test_get_devices_success(self, client: AsyncClient, auth_headers, test_device):
         """Test getting list of devices."""
         response = await client.get("/api/v1/devices/", headers=auth_headers)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -74,11 +66,8 @@ class TestDevices:
 
     async def test_get_device_success(self, client: AsyncClient, auth_headers, test_device):
         """Test getting a specific device."""
-        response = await client.get(
-            f"/api/v1/devices/{test_device.id}", 
-            headers=auth_headers
-        )
-        
+        response = await client.get(f"/api/v1/devices/{test_device.id}", headers=auth_headers)
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == test_device.id
@@ -87,7 +76,7 @@ class TestDevices:
     async def test_get_device_not_found(self, client: AsyncClient, auth_headers):
         """Test getting non-existent device fails."""
         response = await client.get("/api/v1/devices/99999", headers=auth_headers)
-        
+
         assert response.status_code == 404
         assert "Device not found" in response.json()["detail"]
 
@@ -96,15 +85,13 @@ class TestDevices:
         update_data = {
             "name": "Updated Server Name",
             "description": "Updated description",
-            "location": "New Location"
+            "location": "New Location",
         }
-        
+
         response = await client.put(
-            f"/api/v1/devices/{test_device.id}", 
-            json=update_data, 
-            headers=auth_headers
+            f"/api/v1/devices/{test_device.id}", json=update_data, headers=auth_headers
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == update_data["name"]
@@ -115,55 +102,41 @@ class TestDevices:
     async def test_update_device_not_found(self, client: AsyncClient, auth_headers):
         """Test updating non-existent device fails."""
         update_data = {"name": "Updated Name"}
-        
-        response = await client.put(
-            "/api/v1/devices/99999", 
-            json=update_data, 
-            headers=auth_headers
-        )
-        
+
+        response = await client.put("/api/v1/devices/99999", json=update_data, headers=auth_headers)
+
         assert response.status_code == 404
 
     async def test_delete_device_success(self, client: AsyncClient, auth_headers, test_device):
         """Test successful device deletion."""
-        response = await client.delete(
-            f"/api/v1/devices/{test_device.id}", 
-            headers=auth_headers
-        )
-        
+        response = await client.delete(f"/api/v1/devices/{test_device.id}", headers=auth_headers)
+
         assert response.status_code == 204
         assert response.content == b""
 
         # Verify device is deleted
-        get_response = await client.get(
-            f"/api/v1/devices/{test_device.id}", 
-            headers=auth_headers
-        )
+        get_response = await client.get(f"/api/v1/devices/{test_device.id}", headers=auth_headers)
         assert get_response.status_code == 404
 
     async def test_delete_device_not_found(self, client: AsyncClient, auth_headers):
         """Test deleting non-existent device fails."""
         response = await client.delete("/api/v1/devices/99999", headers=auth_headers)
-        
+
         assert response.status_code == 404
 
     async def test_device_types_validation(self, client: AsyncClient, auth_headers):
         """Test device type validation."""
         valid_types = ["server", "iot_sensor", "network_device", "camera", "other"]
-        
+
         for device_type in valid_types:
             device_data = {
                 "name": f"Test {device_type}",
                 "device_type": device_type,
-                "hostname": f"test-{device_type}.local"
+                "hostname": f"test-{device_type}.local",
             }
-            
-            response = await client.post(
-                "/api/v1/devices/", 
-                json=device_data, 
-                headers=auth_headers
-            )
-            
+
+            response = await client.post("/api/v1/devices/", json=device_data, headers=auth_headers)
+
             assert response.status_code == 201
 
     async def test_device_invalid_type(self, client: AsyncClient, auth_headers):
@@ -171,13 +144,9 @@ class TestDevices:
         device_data = {
             "name": "Test Device",
             "device_type": "invalid_type",
-            "hostname": "test.local"
+            "hostname": "test.local",
         }
-        
-        response = await client.post(
-            "/api/v1/devices/", 
-            json=device_data, 
-            headers=auth_headers
-        )
-        
+
+        response = await client.post("/api/v1/devices/", json=device_data, headers=auth_headers)
+
         assert response.status_code == 422

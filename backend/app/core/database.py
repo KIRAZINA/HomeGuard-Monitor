@@ -1,4 +1,5 @@
 """Database configuration and session management."""
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import NullPool, QueuePool
+
 import structlog
 
 from app.core.config import settings
@@ -23,22 +24,23 @@ def create_async_db_engine() -> AsyncEngine:
     """Create async database engine with optimized settings."""
     db_url = str(settings.DATABASE_URL).lower()
     is_sqlite = "sqlite" in db_url
-    
+
     base_args = {
         "echo": settings.DATABASE_ECHO,
         "future": True,
         "echo_pool": settings.DEBUG,
     }
-    
+
     if not is_sqlite:
-        base_args.update({
-            "pool_class": QueuePool,
-            "pool_size": settings.DATABASE_POOL_SIZE,
-            "max_overflow": settings.DATABASE_MAX_OVERFLOW,
-            "pool_pre_ping": True,
-            "pool_recycle": 3600,
-        })
-    
+        base_args.update(
+            {
+                "pool_size": settings.DATABASE_POOL_SIZE,
+                "max_overflow": settings.DATABASE_MAX_OVERFLOW,
+                "pool_pre_ping": True,
+                "pool_recycle": 3600,
+            }
+        )
+
     engine = create_async_engine(str(settings.DATABASE_URL), **base_args)
     return engine
 
@@ -86,7 +88,7 @@ def get_sync_db():
 
 async def get_db() -> AsyncSession:
     """Get database session dependency.
-    
+
     Yields:
         AsyncSession: Database session
     """
@@ -112,4 +114,3 @@ async def close_db() -> None:
     """Close database connections."""
     await engine.dispose()
     logger.info("database_connections_closed")
-

@@ -1,4 +1,5 @@
 """Device service for database operations."""
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import selectinload
@@ -15,15 +16,15 @@ logger = structlog.get_logger()
 
 class DeviceService:
     """Service for managing devices."""
-    
+
     def __init__(self, db: AsyncSession) -> None:
         """Initialize service with database session.
-        
+
         Args:
             db: AsyncSession database session
         """
         self.db = db
-    
+
     async def create_device(self, device_data: DeviceCreate, user_id: int) -> Device:
         """Create a new device.
 
@@ -44,7 +45,7 @@ class DeviceService:
             if existing:
                 raise DuplicateError(
                     f"Device with hostname '{device_data.hostname}'",
-                    details={"hostname": device_data.hostname}
+                    details={"hostname": device_data.hostname},
                 )
 
             # Create device with ownership
@@ -54,7 +55,9 @@ class DeviceService:
             if "tags" in device_data_dict:
                 tags = device_data_dict.pop("tags", None)
                 if tags:
-                    device_data_dict["tags"] = ",".join(tags) if isinstance(tags, list) else str(tags)
+                    device_data_dict["tags"] = (
+                        ",".join(tags) if isinstance(tags, list) else str(tags)
+                    )
                 else:
                     device_data_dict["tags"] = None
             device = Device(**device_data_dict)
@@ -76,7 +79,7 @@ class DeviceService:
             logger.exception("create_device_failed", exc_info=e)
             await self.db.rollback()
             raise DatabaseError("Failed to create device", {"error": str(e)})
-    
+
     async def get_device(self, device_id: int, user_id: int) -> Optional[Device]:
         """Get device by ID scoped to user.
 
@@ -161,7 +164,7 @@ class DeviceService:
         except Exception as e:
             logger.exception("get_devices_count_failed", exc_info=e)
             raise DatabaseError("Failed to count devices")
-    
+
     async def update_device(
         self,
         device_id: int,
@@ -187,7 +190,7 @@ class DeviceService:
             device = await self.get_device(device_id, user_id)
             if not device:
                 raise NotFoundError("Device")
-            
+
             update_data = device_data.model_dump(exclude_unset=True)
             if not update_data:
                 return device
@@ -198,26 +201,23 @@ class DeviceService:
                     update_data["tags"] = ",".join(tags) if isinstance(tags, list) else str(tags)
                 else:
                     update_data["tags"] = None
-            
+
             # Check for hostname collision
             if "hostname" in update_data and update_data["hostname"] != device.hostname:
                 existing = await self._get_by_hostname(update_data["hostname"])
                 if existing:
                     raise DuplicateError(
                         f"Device with hostname '{update_data['hostname']}'",
-                        details={"hostname": update_data["hostname"]}
+                        details={"hostname": update_data["hostname"]},
                     )
-            
+
             update_data["updated_at"] = datetime.utcnow()
-            
+
             result = await self.db.execute(
-                update(Device)
-                .where(Device.id == device_id)
-                .values(**update_data)
-                .returning(Device)
+                update(Device).where(Device.id == device_id).values(**update_data).returning(Device)
             )
             await self.db.commit()
-            
+
             updated_device = result.scalar_one_or_none()
             logger.info("device_updated", device_id=device_id)
             return updated_device
@@ -227,7 +227,7 @@ class DeviceService:
             logger.exception("update_device_failed", device_id=device_id, exc_info=e)
             await self.db.rollback()
             raise DatabaseError(f"Failed to update device {device_id}")
-    
+
     async def delete_device(self, device_id: int, user_id: int) -> bool:
         """Delete a device scoped to user.
 
@@ -266,14 +266,14 @@ class DeviceService:
         status: str,
     ) -> bool:
         """Update device status.
-        
+
         Args:
             device_id: Device ID
             status: New status
-            
+
         Returns:
             True if updated, False if not found
-            
+
         Raises:
             DatabaseError: If database operation fails
         """
@@ -289,14 +289,14 @@ class DeviceService:
             )
             await self.db.commit()
             updated = result.rowcount > 0
-            
+
             if updated:
                 logger.info(
                     "device_status_updated",
                     device_id=device_id,
                     status=status,
                 )
-            
+
             return updated
         except Exception as e:
             logger.exception(
@@ -306,18 +306,15 @@ class DeviceService:
             )
             await self.db.rollback()
             raise DatabaseError(f"Failed to update device status {device_id}")
-    
+
     async def _get_by_hostname(self, hostname: str) -> Optional[Device]:
         """Get device by hostname (internal method).
-        
+
         Args:
             hostname: Device hostname
-            
+
         Returns:
             Device instance or None
         """
-        result = await self.db.execute(
-            select(Device).where(Device.hostname == hostname)
-        )
+        result = await self.db.execute(select(Device).where(Device.hostname == hostname))
         return result.scalar_one_or_none()
-

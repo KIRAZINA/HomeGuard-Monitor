@@ -1,4 +1,5 @@
 """Authentication dependencies for FastAPI endpoints."""
+
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,9 +44,7 @@ async def get_current_user(
         )
 
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise HTTPException(
@@ -61,9 +60,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    result = await db.execute(
-        select(User).where(User.email == token_data.email)
-    )
+    result = await db.execute(select(User).where(User.email == token_data.email))
     user = result.scalar_one_or_none()
 
     if user is None:
@@ -124,9 +121,7 @@ async def verify_agent_api_key(
             headers={"WWW-Authenticate": "X-Agent-API-Key"},
         )
 
-    result = await db.execute(
-        select(Device).where(Device.api_key == api_key)
-    )
+    result = await db.execute(select(Device).where(Device.api_key == api_key))
     device = result.scalar_one_or_none()
 
     if not device:
@@ -142,9 +137,7 @@ async def verify_agent_api_key(
 async def get_user_from_token(token: str, db: AsyncSession) -> User:
     """Validate a JWT token and return the associated user."""
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise AuthenticationError("Invalid token")
@@ -152,9 +145,7 @@ async def get_user_from_token(token: str, db: AsyncSession) -> User:
     except JWTError:
         raise AuthenticationError("Invalid token")
 
-    result = await db.execute(
-        select(User).where(User.email == token_data.email)
-    )
+    result = await db.execute(select(User).where(User.email == token_data.email))
     user = result.scalar_one_or_none()
 
     if user is None:

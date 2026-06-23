@@ -1,10 +1,11 @@
 """Custom exception definitions for the application."""
+
 from typing import Any, Dict, Optional
 
 
 class HomeGuardException(Exception):
     """Base exception for HomeGuard Monitor."""
-    
+
     def __init__(
         self,
         message: str,
@@ -13,7 +14,7 @@ class HomeGuardException(Exception):
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Initialize exception.
-        
+
         Args:
             message: Human-readable error message
             status_code: HTTP status code
@@ -29,7 +30,7 @@ class HomeGuardException(Exception):
 
 class ValidationError(HomeGuardException):
     """Raised when input validation fails."""
-    
+
     def __init__(
         self,
         message: str,
@@ -45,7 +46,7 @@ class ValidationError(HomeGuardException):
 
 class NotFoundError(HomeGuardException):
     """Raised when a resource is not found."""
-    
+
     def __init__(self, resource: str, **kwargs: Any) -> None:
         super().__init__(
             message=f"{resource} not found",
@@ -57,7 +58,7 @@ class NotFoundError(HomeGuardException):
 
 class DuplicateError(HomeGuardException):
     """Raised when attempting to create a duplicate resource."""
-    
+
     def __init__(self, resource: str, **kwargs: Any) -> None:
         super().__init__(
             message=f"{resource} already exists",
@@ -69,7 +70,7 @@ class DuplicateError(HomeGuardException):
 
 class AuthenticationError(HomeGuardException):
     """Raised when authentication fails."""
-    
+
     def __init__(self, message: str = "Invalid credentials") -> None:
         super().__init__(
             message=message,
@@ -80,7 +81,7 @@ class AuthenticationError(HomeGuardException):
 
 class AuthorizationError(HomeGuardException):
     """Raised when user lacks required permissions."""
-    
+
     def __init__(self, message: str = "Insufficient permissions") -> None:
         super().__init__(
             message=message,
@@ -91,7 +92,7 @@ class AuthorizationError(HomeGuardException):
 
 class DatabaseError(HomeGuardException):
     """Raised when database operation fails."""
-    
+
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
         super().__init__(
             message=message,
@@ -103,7 +104,7 @@ class DatabaseError(HomeGuardException):
 
 class ExternalServiceError(HomeGuardException):
     """Raised when external service fails."""
-    
+
     def __init__(self, service: str, message: str) -> None:
         super().__init__(
             message=f"{service} service error: {message}",
@@ -115,7 +116,7 @@ class ExternalServiceError(HomeGuardException):
 
 class ConfigurationError(HomeGuardException):
     """Raised when configuration is invalid."""
-    
+
     def __init__(self, message: str) -> None:
         super().__init__(
             message=f"Configuration error: {message}",
@@ -126,7 +127,7 @@ class ConfigurationError(HomeGuardException):
 
 class TaskError(HomeGuardException):
     """Raised when background task fails."""
-    
+
     def __init__(self, task_name: str, message: str) -> None:
         super().__init__(
             message=f"Task '{task_name}' failed: {message}",

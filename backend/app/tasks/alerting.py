@@ -1,4 +1,5 @@
 """Celery tasks for alert rule evaluation."""
+
 from celery import current_app
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta

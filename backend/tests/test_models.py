@@ -26,6 +26,7 @@ class TestDeviceModel:
         """Create a test user for device ownership."""
         from app.services.auth_service import AuthService
         from app.schemas.user import UserCreate
+
         auth_service = AuthService(db_session)
         user = await auth_service.create_user(
             UserCreate(email="device_test@example.com", password="testpass123")
@@ -44,7 +45,7 @@ class TestDeviceModel:
             location="Test Lab",
             tags="test,server",
             status=DeviceStatus.ONLINE,
-            user_id=local_user.id
+            user_id=local_user.id,
         )
         db_session.add(device)
         await db_session.commit()
@@ -55,7 +56,7 @@ class TestDeviceModel:
     async def test_device_creation(self, db_session, local_device):
         """Test device model creation."""
         device = local_device
-        
+
         assert device.id is not None
         assert device.name == "Test Server"
         assert device.device_type == DeviceType.SERVER
@@ -70,13 +71,13 @@ class TestDeviceModel:
             name="Test Server",
             device_type=DeviceType.SERVER,
             hostname="test-server",
-            user_id=local_user.id
+            user_id=local_user.id,
         )
-        
+
         db_session.add(device)
         await db_session.commit()
         await db_session.refresh(device)
-        
+
         assert device.status == DeviceStatus.OFFLINE  # Default status
         assert device.description is None
         assert device.ip_address is None
@@ -90,11 +91,11 @@ class TestDeviceModel:
             name="Test Server",
             device_type=DeviceType.SERVER,
             hostname="test-server",
-            user_id=local_user.id
+            user_id=local_user.id,
         )
-        
+
         # Test that the device has a __repr__ method
-        assert hasattr(device, '__repr__')
+        assert hasattr(device, "__repr__")
         repr_str = repr(device)
         assert "Test Server" in repr_str or "Device" in repr_str
 
@@ -109,7 +110,7 @@ class TestMetricModel:
             name="Test Server",
             device_type=DeviceType.SERVER,
             hostname="test-server",
-            user_id=local_user.id
+            user_id=local_user.id,
         )
         db_session.add(device)
         await db_session.commit()
@@ -125,13 +126,13 @@ class TestMetricModel:
             value=75.5,
             unit="percent",
             tags={"core": "0"},
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
-        
+
         db_session.add(metric)
         await db_session.commit()
         await db_session.refresh(metric)
-        
+
         assert metric.id is not None
         assert metric.device_id == local_device.id
         assert metric.metric_type == "cpu_usage_percent"
@@ -143,16 +144,12 @@ class TestMetricModel:
     @pytest.mark.asyncio
     async def test_metric_defaults(self, db_session, local_device):
         """Test metric model default values."""
-        metric = Metric(
-            device_id=local_device.id,
-            metric_type="cpu_usage_percent",
-            value=75.5
-        )
-        
+        metric = Metric(device_id=local_device.id, metric_type="cpu_usage_percent", value=75.5)
+
         db_session.add(metric)
         await db_session.commit()
         await db_session.refresh(metric)
-        
+
         assert metric.unit is None
         assert metric.tags is None
         assert metric.timestamp is not None  # Should have default timestamp
@@ -160,16 +157,12 @@ class TestMetricModel:
     @pytest.mark.asyncio
     async def test_metric_device_relationship(self, db_session, local_device):
         """Test metric-device relationship."""
-        metric = Metric(
-            device_id=local_device.id,
-            metric_type="cpu_usage_percent",
-            value=75.5
-        )
-        
+        metric = Metric(device_id=local_device.id, metric_type="cpu_usage_percent", value=75.5)
+
         db_session.add(metric)
         await db_session.commit()
         await db_session.refresh(metric)
-        
+
         assert metric.device.name == local_device.name
         assert metric.device.hostname == local_device.hostname
 
@@ -184,7 +177,7 @@ class TestAlertRuleModel:
             name="Test Server",
             device_type=DeviceType.SERVER,
             hostname="test-server",
-            user_id=local_user.id
+            user_id=local_user.id,
         )
         db_session.add(device)
         await db_session.commit()
@@ -205,13 +198,13 @@ class TestAlertRuleModel:
             comparison_operator="gt",
             evaluation_window_minutes=5,
             notification_channels=["email", "telegram"],
-            enabled=True
+            enabled=True,
         )
-        
+
         db_session.add(rule)
         await db_session.commit()
         await db_session.refresh(rule)
-        
+
         assert rule.id is not None
         assert rule.name == "High CPU Alert"
         assert rule.device_id == local_device.id
@@ -227,13 +220,13 @@ class TestAlertRuleModel:
             device_id=local_device.id,
             metric_type="cpu_usage_percent",
             rule_type="threshold",
-            severity="warning"
+            severity="warning",
         )
-        
+
         db_session.add(rule)
         await db_session.commit()
         await db_session.refresh(rule)
-        
+
         assert rule.evaluation_window_minutes == 5  # Default value
         assert rule.enabled is True  # Default value
         assert rule.notification_channels == []  # Default empty list
@@ -246,13 +239,13 @@ class TestAlertRuleModel:
             device_id=local_device.id,
             metric_type="cpu_usage_percent",
             rule_type="threshold",
-            severity="warning"
+            severity="warning",
         )
-        
+
         db_session.add(rule)
         await db_session.commit()
         await db_session.refresh(rule)
-        
+
         assert rule.device.name == local_device.name
 
 
@@ -266,30 +259,30 @@ class TestAlertModel:
             name="Test Server",
             device_type=DeviceType.SERVER,
             hostname="test-server",
-            user_id=local_user.id
+            user_id=local_user.id,
         )
         db_session.add(device)
         await db_session.commit()
         await db_session.refresh(device)
-        
+
         rule = AlertRule(
             name="Test Rule",
             device_id=device.id,
             metric_type="cpu_usage_percent",
             rule_type="threshold",
-            severity="warning"
+            severity="warning",
         )
         db_session.add(rule)
         await db_session.commit()
         await db_session.refresh(rule)
-        
+
         return device, rule
 
     @pytest.mark.asyncio
     async def test_alert_creation(self, db_session, local_device_and_rule):
         """Test alert model creation."""
         device, rule = local_device_and_rule
-        
+
         alert = Alert(
             rule_id=rule.id,
             device_id=device.id,
@@ -298,13 +291,13 @@ class TestAlertModel:
             status="active",
             message="CPU usage is high",
             trigger_value=85.0,
-            triggered_at=datetime.utcnow()
+            triggered_at=datetime.utcnow(),
         )
-        
+
         db_session.add(alert)
         await db_session.commit()
         await db_session.refresh(alert)
-        
+
         assert alert.id is not None
         assert alert.rule_id == rule.id
         assert alert.device_id == device.id
@@ -316,20 +309,20 @@ class TestAlertModel:
     async def test_alert_defaults(self, db_session, local_device_and_rule):
         """Test alert model default values."""
         device, rule = local_device_and_rule
-        
+
         alert = Alert(
             rule_id=rule.id,
             device_id=device.id,
             metric_type="cpu_usage_percent",
             severity="warning",
             message="Test alert",
-            trigger_value=80.0
+            trigger_value=80.0,
         )
-        
+
         db_session.add(alert)
         await db_session.commit()
         await db_session.refresh(alert)
-        
+
         assert alert.status == "active"  # Default status
         assert alert.acknowledged_at is None
         assert alert.acknowledged_by is None
@@ -341,20 +334,20 @@ class TestAlertModel:
     async def test_alert_relationships(self, db_session, local_device_and_rule):
         """Test alert relationships."""
         device, rule = local_device_and_rule
-        
+
         alert = Alert(
             rule_id=rule.id,
             device_id=device.id,
             metric_type="cpu_usage_percent",
             severity="warning",
             message="Test alert",
-            trigger_value=80.0
+            trigger_value=80.0,
         )
-        
+
         db_session.add(alert)
         await db_session.commit()
         await db_session.refresh(alert)
-        
+
         assert alert.rule.name == rule.name
         assert alert.device.name == device.name
 
@@ -369,13 +362,13 @@ class TestUserModel:
             email="test@example.com",
             full_name="Test User",
             hashed_password="hashed_password_here",
-            is_active=True
+            is_active=True,
         )
-        
+
         db_session.add(user)
         await db_session.commit()
         await db_session.refresh(user)
-        
+
         assert user.id is not None
         assert user.email == "test@example.com"
         assert user.full_name == "Test User"
@@ -387,36 +380,27 @@ class TestUserModel:
     @pytest.mark.asyncio
     async def test_user_defaults(self, db_session):
         """Test user model default values."""
-        user = User(
-            email="test@example.com",
-            hashed_password="hashed_password_here"
-        )
-        
+        user = User(email="test@example.com", hashed_password="hashed_password_here")
+
         db_session.add(user)
         await db_session.commit()
         await db_session.refresh(user)
-        
+
         assert user.full_name is None
         assert user.is_active is True  # Default value
 
     @pytest.mark.asyncio
     async def test_user_email_unique(self, db_session):
         """Test user email uniqueness constraint."""
-        user1 = User(
-            email="duplicate@example.com",
-            hashed_password="password1"
-        )
-        
-        user2 = User(
-            email="duplicate@example.com",
-            hashed_password="password2"
-        )
-        
+        user1 = User(email="duplicate@example.com", hashed_password="password1")
+
+        user2 = User(email="duplicate@example.com", hashed_password="password2")
+
         db_session.add(user1)
         await db_session.commit()
-        
+
         db_session.add(user2)
-        
+
         # This should raise an integrity error due to unique constraint
         with pytest.raises(Exception):  # Could be different exception types
             await db_session.commit()

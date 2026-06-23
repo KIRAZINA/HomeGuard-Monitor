@@ -15,31 +15,32 @@ class TestNotificationServiceColor:
     def notification_service(self):
         """Create notification service instance."""
         from app.services.notification_service import NotificationService
+
         return NotificationService()
 
     @pytest.mark.asyncio
     async def test_get_discord_color_info(self, notification_service):
         """Test Discord color for info severity."""
         color = notification_service._get_discord_color("info")
-        assert color == 0x3498db
+        assert color == 0x3498DB
 
     @pytest.mark.asyncio
     async def test_get_discord_color_warning(self, notification_service):
         """Test Discord color for warning severity."""
         color = notification_service._get_discord_color("warning")
-        assert color == 0xf39c12
+        assert color == 0xF39C12
 
     @pytest.mark.asyncio
     async def test_get_discord_color_critical(self, notification_service):
         """Test Discord color for critical severity."""
         color = notification_service._get_discord_color("critical")
-        assert color == 0xe74c3c
+        assert color == 0xE74C3C
 
     @pytest.mark.asyncio
     async def test_get_discord_color_unknown(self, notification_service):
         """Test Discord color for unknown severity."""
         color = notification_service._get_discord_color("unknown")
-        assert color == 0x95a5a6
+        assert color == 0x95A5A6
 
 
 class TestNotificationServiceMocked:
@@ -73,18 +74,18 @@ class TestNotificationServiceMocked:
     async def test_send_email_notification_mocked(self, mock_alert, mock_rule):
         """Test email notification with mocked SMTP."""
         from app.services.notification_service import NotificationService
-        
+
         notification_service = NotificationService()
         notification_service.smtp_host = "smtp.test.com"
         notification_service.smtp_username = "test@test.com"
         notification_service.smtp_password = "password"
-        
-        with patch('aiosmtplib.send', new_callable=AsyncMock) as mock_send:
+
+        with patch("aiosmtplib.send", new_callable=AsyncMock) as mock_send:
             mock_send.return_value = None
-            
+
             # Direct call without awaiting email operations
             assert notification_service.smtp_host == "smtp.test.com"
-            
+
             # Verify mock can be called
             mock_send.assert_not_called()
 
@@ -92,10 +93,10 @@ class TestNotificationServiceMocked:
     async def test_send_telegram_notification_missing_token(self, mock_alert, mock_rule):
         """Test Telegram notification without bot token."""
         from app.services.notification_service import NotificationService
-        
+
         notification_service = NotificationService()
         notification_service.telegram_bot_token = None
-        
+
         # Should return None or handle gracefully
         assert notification_service.telegram_bot_token is None
 
@@ -103,21 +104,21 @@ class TestNotificationServiceMocked:
     async def test_send_discord_notification_missing_webhook(self, mock_alert, mock_rule):
         """Test Discord notification without webhook URL."""
         from app.services.notification_service import NotificationService
-        
+
         notification_service = NotificationService()
         notification_service.discord_webhook_url = None
-        
+
         assert notification_service.discord_webhook_url is None
 
     @pytest.mark.asyncio
     async def test_send_sms_notification_missing_config(self, mock_alert, mock_rule):
         """Test SMS notification with missing Twilio configuration."""
         from app.services.notification_service import NotificationService
-        
+
         notification_service = NotificationService()
         notification_service.twilio_account_sid = None
         notification_service.twilio_auth_token = None
-        
+
         assert notification_service.twilio_account_sid is None
         assert notification_service.twilio_auth_token is None
 
@@ -125,13 +126,13 @@ class TestNotificationServiceMocked:
     async def test_notification_service_channels_property(self, mock_rule):
         """Test notification channels property."""
         from app.services.notification_service import NotificationService
-        
+
         notification_service = NotificationService()
-        
+
         # Test with channels
         mock_rule.notification_channels = ["email", "telegram"]
         assert len(mock_rule.notification_channels) == 2
-        
+
         # Test with empty channels
         mock_rule.notification_channels = []
         assert len(mock_rule.notification_channels) == 0
@@ -144,12 +145,13 @@ class TestNotificationServiceHelpers:
     def notification_service(self):
         """Create notification service instance."""
         from app.services.notification_service import NotificationService
+
         return NotificationService()
 
     @pytest.mark.asyncio
     async def test_color_mapping_exists(self, notification_service):
         """Test that color mapping exists."""
-        assert hasattr(notification_service, '_get_discord_color')
+        assert hasattr(notification_service, "_get_discord_color")
         assert callable(notification_service._get_discord_color)
 
     @pytest.mark.asyncio

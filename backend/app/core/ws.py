@@ -1,4 +1,5 @@
 """WebSocket connection manager with Redis pub/sub for real-time alert broadcasting."""
+
 import json
 import structlog
 from typing import Set

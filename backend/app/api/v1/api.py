@@ -1,4 +1,5 @@
 """API v1 router configuration."""
+
 from fastapi import APIRouter
 from app.api.v1.endpoints import devices, metrics, alerts, auth
 
@@ -23,4 +24,3 @@ api_router.include_router(
     alerts.router,
     prefix="/alerts",
 )
-

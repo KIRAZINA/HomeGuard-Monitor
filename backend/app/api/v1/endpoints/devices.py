@@ -1,4 +1,5 @@
 """Device API endpoints."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -32,11 +33,11 @@ async def create_device(
     current_user: User = Depends(get_current_active_user),
 ) -> DeviceResponse:
     """Create a new device.
-    
+
     Args:
         device: Device creation data
         db: Database session
-        
+
     Returns:
         Created device
     """
@@ -76,14 +77,14 @@ async def list_devices(
     current_user: User = Depends(get_current_active_user),
 ) -> List[DeviceResponse]:
     """Get paginated devices list.
-    
+
     Args:
         skip: Number of records to skip
         limit: Maximum records to return
         status: Optional status filter
         device_type: Optional device type filter
         db: Database session
-        
+
     Returns:
         List of devices
     """
@@ -126,11 +127,11 @@ async def get_device(
     current_user: User = Depends(get_current_active_user),
 ) -> DeviceResponse:
     """Get device by ID.
-    
+
     Args:
         device_id: Device ID
         db: Database session
-        
+
     Returns:
         Device details
     """
@@ -140,7 +141,7 @@ async def get_device(
         if not device:
             logger.warning("device_not_found", device_id=device_id)
             raise NotFoundError("Device")
-        
+
         logger.info("get_device_request", device_id=device_id)
         return device
     except NotFoundError as e:
@@ -173,23 +174,25 @@ async def update_device(
     current_user: User = Depends(get_current_active_user),
 ) -> DeviceResponse:
     """Update a device.
-    
+
     Args:
         device_id: Device ID
         device_update: Device update data
         db: Database session
-        
+
     Returns:
         Updated device
     """
     try:
         device_service = DeviceService(db)
-        device = await device_service.update_device(device_id, device_update, user_id=current_user.id)
+        device = await device_service.update_device(
+            device_id, device_update, user_id=current_user.id
+        )
 
         if not device:
             logger.warning("device_not_found_update", device_id=device_id)
             raise NotFoundError("Device")
-        
+
         logger.info("device_update_request", device_id=device_id)
         return device
     except (NotFoundError, DuplicateError) as e:
@@ -220,7 +223,7 @@ async def delete_device(
     current_user: User = Depends(get_current_active_user),
 ) -> None:
     """Delete a device.
-    
+
     Args:
         device_id: Device ID to delete
         db: Database session
@@ -232,7 +235,7 @@ async def delete_device(
         if not success:
             logger.warning("device_not_found_delete", device_id=device_id)
             raise NotFoundError("Device")
-        
+
         logger.info("device_delete_request", device_id=device_id)
     except NotFoundError as e:
         raise HTTPException(
@@ -245,4 +248,3 @@ async def delete_device(
             status_code=e.status_code,
             detail=e.message,
         ) from e
-

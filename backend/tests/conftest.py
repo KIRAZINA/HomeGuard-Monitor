@@ -17,9 +17,7 @@ test_engine = create_async_engine(
     poolclass=StaticPool,
 )
 
-TestSessionLocal = sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
-)
+TestSessionLocal = sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -27,10 +25,10 @@ async def db_session():
     """Create a fresh database session for each test."""
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async with TestSessionLocal() as session:
         yield session
-    
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -38,16 +36,17 @@ async def db_session():
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession):
     """Create a test client with database dependency override."""
+
     async def override_get_db():
         yield db_session
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     # Use ASGITransport for newer versions of httpx
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
 
 
@@ -66,9 +65,7 @@ async def test_user(db_session: AsyncSession):
 
     auth_service = AuthService(db_session)
     user_data = UserCreate(
-        email="test@example.com",
-        password="testpassword123",
-        full_name="Test User"
+        email="test@example.com", password="testpassword123", full_name="Test User"
     )
     user = await auth_service.create_user(user_data)
     return user
@@ -80,9 +77,7 @@ async def test_user_token(test_user, db_session: AsyncSession):
     from app.services.auth_service import AuthService
 
     auth_service = AuthService(db_session)
-    token = auth_service.create_access_token(
-        data={"sub": test_user.email}
-    )
+    token = auth_service.create_access_token(data={"sub": test_user.email})
     return token
 
 
@@ -114,20 +109,20 @@ async def test_metrics(db_session: AsyncSession, test_device):
     """Create test metrics for the test device."""
     from app.models.metric import Metric
     from datetime import datetime, timedelta
-    
+
     metrics = []
     base_time = datetime.utcnow() - timedelta(hours=1)
-    
+
     for i in range(10):
         metric = Metric(
             device_id=test_device.id,
             metric_type="cpu_usage_percent",
             value=50.0 + (i * 5),
             unit="percent",
-            timestamp=base_time + timedelta(minutes=i * 6)
+            timestamp=base_time + timedelta(minutes=i * 6),
         )
         metrics.append(metric)
-    
+
     db_session.add_all(metrics)
     await db_session.commit()
     return metrics

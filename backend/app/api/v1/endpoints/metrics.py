@@ -37,20 +37,20 @@ async def get_metrics(
     current_user: User = Depends(get_current_active_user),
 ):
     metric_service = MetricService(db)
-    
+
     if not end_time:
         end_time = datetime.utcnow()
     if not start_time:
         start_time = end_time - timedelta(hours=24)
-    
+
     query = MetricQuery(
         device_id=device_id,
         metric_type=metric_type,
         start_time=start_time,
         end_time=end_time,
-        limit=limit
+        limit=limit,
     )
-    
+
     return await metric_service.get_metrics(query)
 
 

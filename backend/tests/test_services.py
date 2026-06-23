@@ -23,7 +23,7 @@ class TestDeviceService:
             description="Test server",
             device_type=DeviceType.SERVER,
             hostname="test-server",
-            ip_address="192.168.1.100"
+            ip_address="192.168.1.100",
         )
 
         device = await device_service.create_device(device_data, user_id=test_user.id)
@@ -69,12 +69,11 @@ class TestDeviceService:
     async def test_update_device(self, db_session, test_device, test_user):
         """Test device update."""
         device_service = DeviceService(db_session)
-        update_data = DeviceUpdate(
-            name="Updated Name",
-            description="Updated description"
-        )
+        update_data = DeviceUpdate(name="Updated Name", description="Updated description")
 
-        device = await device_service.update_device(test_device.id, update_data, user_id=test_user.id)
+        device = await device_service.update_device(
+            test_device.id, update_data, user_id=test_user.id
+        )
 
         assert device is not None
         assert device.name == update_data.name
@@ -98,10 +97,7 @@ class TestDeviceService:
         """Test device status update."""
         device_service = DeviceService(db_session)
 
-        success = await device_service.update_device_status(
-            test_device.id,
-            DeviceStatus.ONLINE
-        )
+        success = await device_service.update_device_status(test_device.id, DeviceStatus.ONLINE)
 
         assert success is True
 
@@ -121,7 +117,7 @@ class TestMetricService:
                 device_id=test_device.id,
                 metric_type="cpu_usage_percent",
                 value=75.5,
-                unit="percent"
+                unit="percent",
             )
         ]
 
@@ -136,9 +132,7 @@ class TestMetricService:
         metric_service = MetricService(db_session)
         metrics_data = [
             MetricCreate(
-                device_id=test_device.id,
-                metric_type="cpu_usage_percent",
-                value=50.0 + i * 10
+                device_id=test_device.id, metric_type="cpu_usage_percent", value=50.0 + i * 10
             )
             for i in range(5)
         ]
@@ -147,11 +141,7 @@ class TestMetricService:
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(hours=24)
         metrics = await metric_service.get_metrics(
-            MetricQuery(
-                device_id=test_device.id,
-                start_time=start_time,
-                end_time=end_time
-            )
+            MetricQuery(device_id=test_device.id, start_time=start_time, end_time=end_time)
         )
 
         assert len(metrics) == 5
@@ -166,7 +156,7 @@ class TestMetricService:
                 device_id=test_device.id,
                 metric_type="cpu_usage_percent",
                 value=50.0 + i * 10,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.utcnow(),
             )
             for i in range(3)
         ]
@@ -182,11 +172,7 @@ class TestMetricService:
         """Test metrics summary."""
         metric_service = MetricService(db_session)
         metrics_data = [
-            MetricCreate(
-                device_id=test_device.id,
-                metric_type="cpu_usage_percent",
-                value=float(v)
-            )
+            MetricCreate(device_id=test_device.id, metric_type="cpu_usage_percent", value=float(v))
             for v in [50, 60, 70, 80, 90]
         ]
         await metric_service.ingest_metrics(metrics_data)
@@ -215,7 +201,7 @@ class TestAlertService:
             severity="warning",
             threshold_value=80.0,
             comparison_operator="gt",
-            notification_channels=["email"]
+            notification_channels=["email"],
         )
 
         rule = await alert_service.create_alert_rule(rule_data)
@@ -236,7 +222,7 @@ class TestAlertService:
             severity="warning",
             threshold_value=80.0,
             comparison_operator="gt",
-            notification_channels=["email"]
+            notification_channels=["email"],
         )
         rule = await alert_service.create_alert_rule(rule_data)
 
@@ -246,7 +232,7 @@ class TestAlertService:
             metric_type="cpu_usage_percent",
             severity="warning",
             message="High CPU usage detected",
-            trigger_value=85.0
+            trigger_value=85.0,
         )
         alert = await alert_service.create_alert(alert_data)
 
@@ -266,7 +252,7 @@ class TestAlertService:
             severity="warning",
             threshold_value=80.0,
             comparison_operator="gt",
-            notification_channels=["email"]
+            notification_channels=["email"],
         )
         rule = await alert_service.create_alert_rule(rule_data)
 
@@ -277,7 +263,7 @@ class TestAlertService:
                 metric_type="cpu_usage_percent",
                 severity="warning",
                 message="Test alert",
-                trigger_value=85.0
+                trigger_value=85.0,
             )
         )
 
@@ -297,7 +283,7 @@ class TestAlertService:
             severity="warning",
             threshold_value=80.0,
             comparison_operator="gt",
-            notification_channels=["email"]
+            notification_channels=["email"],
         )
         rule = await alert_service.create_alert_rule(rule_data)
 
@@ -308,7 +294,7 @@ class TestAlertService:
                 metric_type="cpu_usage_percent",
                 severity="warning",
                 message="Test alert",
-                trigger_value=85.0
+                trigger_value=85.0,
             )
         )
 

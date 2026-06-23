@@ -1,4 +1,5 @@
 """FastAPI application factory."""
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +31,7 @@ async def lifespan(app: FastAPI):
         version=settings.VERSION,
         environment=settings.ENVIRONMENT,
     )
-    
+
     try:
         await init_db()
         logger.info("database_ready")
@@ -39,9 +40,9 @@ async def lifespan(app: FastAPI):
         raise
 
     ws_task = asyncio.create_task(manager.start_listener())
-    
+
     yield
-    
+
     # Shutdown
     ws_task.cancel()
     logger.info("application_shutdown")
@@ -63,25 +64,25 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
         openapi_url="/openapi.json" if settings.ENVIRONMENT != "production" else None,
     )
-    
+
     # Add exception handlers
     app.add_exception_handler(HomeGuardException, exception_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
-    
+
     # Add middleware stack (order matters - last added is first executed)
-    
+
     # Rate limiting middleware
     limiter = EndpointRateLimiter()
     app.add_middleware(RateLimitMiddleware, limiter=limiter)
-    
+
     # Trusted host middleware for production
     if settings.ENVIRONMENT == "production":
         app.add_middleware(
             TrustedHostMiddleware,
             allowed_hosts=settings.ALLOWED_HOSTS,
         )
-    
+
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,
@@ -91,10 +92,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         max_age=3600,
     )
-    
+
     # Include routers
     app.include_router(api_router, prefix=settings.API_V1_STR)
-    
+
     # Health check endpoints
     @app.get("/health", tags=["Health"])
     async def health_check() -> dict[str, str]:
@@ -104,7 +105,7 @@ def create_app() -> FastAPI:
             "service": "homeguard-monitor",
             "version": settings.VERSION,
         }
-    
+
     @app.get("/health/ready", tags=["Health"])
     async def readiness_check() -> dict[str, str]:
         """Readiness check endpoint."""
@@ -112,7 +113,7 @@ def create_app() -> FastAPI:
             "status": "ready",
             "service": "homeguard-monitor",
         }
-    
+
     @app.get("/", tags=["Info"])
     async def root() -> dict[str, str]:
         """Root endpoint."""
@@ -121,10 +122,9 @@ def create_app() -> FastAPI:
             "version": settings.VERSION,
             "docs": "/docs" if settings.ENVIRONMENT != "production" else "Not available",
         }
-    
+
     return app
 
 
 # Create app instance
 app = create_app()
-

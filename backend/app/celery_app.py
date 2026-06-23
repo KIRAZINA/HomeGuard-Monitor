@@ -1,4 +1,5 @@
 """Celery application configuration."""
+
 from celery import Celery
 from celery.schedules import schedule
 from app.core.config import settings
@@ -26,21 +27,17 @@ celery_app.conf.update(
     task_track_started=True,
     task_time_limit=settings.CELERY_TASK_TIMEOUT,
     task_soft_time_limit=int(settings.CELERY_TASK_TIMEOUT * 0.9),
-    
     # Timezone
     timezone="UTC",
     enable_utc=True,
-    
     # Worker settings
     worker_prefetch_multiplier=4,
     worker_max_tasks_per_child=1000,
-    
     # Result backend settings
     result_expires=3600,
     result_backend_transport_options={
         "visibility_timeout": 3600,
     },
-    
     # Beat schedule for periodic tasks
     beat_schedule={
         "evaluate-alert-rules": {
@@ -76,5 +73,4 @@ def debug_task(self):
         return {"status": "ok"}
     except Exception as exc:
         # Exponential backoff: 2^x * 60 seconds
-        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
-
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))

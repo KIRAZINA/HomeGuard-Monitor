@@ -1,4 +1,5 @@
 """Device schemas for request/response validation."""
+
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
@@ -7,6 +8,7 @@ from enum import Enum
 
 class DeviceType(str, Enum):
     """Supported device types."""
+
     SERVER = "server"
     IOT_SENSOR = "iot_sensor"
     NETWORK_DEVICE = "network_device"
@@ -16,6 +18,7 @@ class DeviceType(str, Enum):
 
 class DeviceStatus(str, Enum):
     """Device operational status."""
+
     ONLINE = "online"
     OFFLINE = "offline"
     WARNING = "warning"
@@ -24,36 +27,24 @@ class DeviceStatus(str, Enum):
 
 class DeviceBase(BaseModel):
     """Base device data."""
+
     name: str = Field(..., min_length=1, max_length=255, description="Device name")
-    description: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Device description"
-    )
+    description: Optional[str] = Field(None, max_length=500, description="Device description")
     device_type: DeviceType = Field(..., description="Device type")
     hostname: str = Field(..., min_length=1, max_length=255, description="Device hostname")
-    ip_address: Optional[str] = Field(
-        None,
-        max_length=45,
-        description="Device IP address"
-    )
-    location: Optional[str] = Field(
-        None,
-        max_length=255,
-        description="Physical device location"
-    )
+    ip_address: Optional[str] = Field(None, max_length=45, description="Device IP address")
+    location: Optional[str] = Field(None, max_length=255, description="Physical device location")
     tags: Optional[List[str]] = Field(
-        default_factory=list,
-        description="Device tags for organization"
+        default_factory=list, description="Device tags for organization"
     )
-    
+
     @validator("hostname")
     def validate_hostname(cls, v: str) -> str:
         """Validate hostname format."""
         if not v.replace(".", "").replace("-", "").replace("_", "").isalnum():
             raise ValueError("Invalid hostname format")
         return v
-    
+
     @validator("ip_address")
     def validate_ip(cls, v: Optional[str]) -> Optional[str]:
         """Validate IP address format."""
@@ -74,11 +65,13 @@ class DeviceBase(BaseModel):
 
 class DeviceCreate(DeviceBase):
     """Device creation request."""
+
     pass
 
 
 class DeviceUpdate(BaseModel):
     """Device update request."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=500)
     device_type: Optional[DeviceType] = None
@@ -87,7 +80,7 @@ class DeviceUpdate(BaseModel):
     location: Optional[str] = Field(None, max_length=255)
     tags: Optional[List[str]] = None
     status: Optional[DeviceStatus] = None
-    
+
     @validator("hostname")
     def validate_hostname(cls, v: Optional[str]) -> Optional[str]:
         """Validate hostname format."""
@@ -100,6 +93,7 @@ class DeviceUpdate(BaseModel):
 
 class DeviceResponse(DeviceBase):
     """Device response model."""
+
     id: int = Field(..., description="Device ID")
     api_key: Optional[str] = Field(None, description="Agent API key (only returned on creation)")
     status: DeviceStatus = Field(..., description="Device status")
@@ -109,6 +103,7 @@ class DeviceResponse(DeviceBase):
 
     class Config:
         """Pydantic config."""
+
         from_attributes = True
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None,

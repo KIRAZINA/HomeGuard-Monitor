@@ -1,4 +1,5 @@
 """Celery tasks for data processing and maintenance."""
+
 from celery import current_app
 from datetime import datetime, timedelta
 import structlog
@@ -17,11 +18,7 @@ def cleanup_old_metrics():
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=settings.METRICS_RETENTION_DAYS)
 
-        deleted = (
-            db.query(Metric)
-            .filter(Metric.timestamp < cutoff_date)
-            .delete()
-        )
+        deleted = db.query(Metric).filter(Metric.timestamp < cutoff_date).delete()
         db.commit()
 
         logger.info("Cleaned up old metrics", deleted_count=deleted)
