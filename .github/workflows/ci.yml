@@ -28,8 +28,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "backend/[dev]"
 
-      - name: Run Black formatter check
-        run: black --check backend/app
+      - name: Run Ruff formatter check
+        run: ruff format --check backend/app
 
       - name: Run Ruff linter
         run: ruff check backend/app
